@@ -44,6 +44,13 @@
     document.getElementById('heard').textContent=partialUser||'—';
   }
   function output(text){
+    // Gemini peut commencer à répondre AVANT le signal turnComplete.
+    // La parole utilisateur est alors terminée : montrer la confirmation de mémoire
+    // immédiatement, sans attendre la fin de la longue réponse vocale d'Ángel.
+    if(partialUser){
+      line('user',partialUser);
+      partialUser='';
+    }
     partialAssistant=join(partialAssistant,text);
     document.getElementById('said').textContent=partialAssistant||'—';
   }
