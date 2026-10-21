@@ -24,10 +24,17 @@ jobs:
           assert "BidiGenerateContentConstrained" in js
           assert "angel-live-token" in js
           assert "dchunxngtdbtgxbccmlb" in html
+          metier = Path("metier.js").read_text(encoding="utf8")
           for forbidden in ["hjrmkkybhhwfelmatcga", "GEMINI_API_KEY", "SUPABASE_SERVICE_ROLE_KEY", "sb_secret_", "AIza"]:
-              assert forbidden not in html, "Référence interdite détectée"
+              assert forbidden not in html and forbidden not in metier, "Référence interdite détectée"
+          assert '<script src="./metier.js"></script>' in html
+          assert 'tools:[{functionDeclarations:metier.toolDefs}]' in html
+          assert 'metier.toolCall(data.toolCall.functionCalls)' in html
+          assert "confirmer_devis" not in metier.split("const toolDefs=", 1)[1].split("const viewCSS=", 1)[0]
           assert len(js) > 2500
           Path("/tmp/angel-v2-client.js").write_text(js, encoding="utf8")
           PY
-      - name: Vérifier la syntaxe JavaScript
-        run: node --check /tmp/angel-v2-client.js
+      - name: Vérifier les deux scripts JavaScript
+        run: |
+          node --check /tmp/angel-v2-client.js
+          node --check metier.js
