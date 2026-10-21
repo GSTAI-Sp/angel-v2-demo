@@ -83,7 +83,7 @@ const WS_URL='wss://generativelanguage.googleapis.com/ws/google.ai.generativelan
 const MODEL='models/gemini-3.8-live';
 const $=id=>document.getElementById(id);
 let jwt=null, socket=null,stream=null, inputCtx=null, outputCtx=null, source=null, processor=null, sink=null;
-let playback=[], nextPlayTime=0, starting=false, stopped=true, setupDone=false, sessionTimer=null;
+let playback=[], nextPlayTime=0, starting=false, stopped=true, setupDone=false, sessionTimer=null, setupTimer=null;
 function setState(label, message, mode=''){
   $('status').textContent=label;$('message').textContent=message;
   $('dot').className='dot '+mode;
@@ -94,6 +94,7 @@ function clearPlayback(){
 function stop(){
   stopped=true;setupDone=false;
   if(sessionTimer){clearTimeout(sessionTimer);sessionTimer=null}
+  if(setupTimer){clearTimeout(setupTimer);setupTimer=null}
   if(socket){const ws=socket;socket=null;try{ws.close(1000,'closed')}catch(_){}}
   if(processor){try{processor.disconnect();processor.onaudioprocess=null;processor.port?.close()}catch(_){} processor=null}
   if(source){try{source.disconnect()}catch(_){}source=null}
@@ -182,6 +183,8 @@ async function openLive(){
     await outputCtx.resume();
     await initCapture();
     const ws=new WebSocket(WS_URL+'?access_token='+encodeURIComponent(data.token));
+    // Google peut renvoyer les messages JSON sous forme de trames WebSocket binaires.
+    ws.binaryType='arraybuffer';
     socket=ws;
     ws.onopen=()=>{
       if(stopped){ws.close();return}
@@ -192,11 +195,42 @@ async function openLive(){
         inputAudioTranscription:{},outputAudioTranscription:{},
         systemInstruction:{parts:[{text:"Tu es Ángel, l'assistante vocale française des artisans. Tu participes à une démonstration : ne prétends jamais consulter de vrais clients ou créer des documents. Réponds naturellement, simplement et brièvement en français."}]}
       }}));
-      setState('Initialisation','Gemini Live se prépare à écouter…');
+      setState('Initialisation','WebSocket connecté. Attente de confirmation de Gemini Live…');
+      setupTimer=setTimeout(()=>{
+        if(stopped||setupDone||socket!==ws)return;
+        stop();
+        setState('Session non initialisée','Gemini n’a pas confirmé la configuration sous 15 secondes. Vérifie le nouvel indicateur WebSocket.','error');
+      },15000);
     };
-    ws.onmessage=e=>{
-      let data;try{data=JSON.parse(e.data)}catch(_){return}
-      if(data.setupComplete){setupDone=true;setState('Je t’écoute','Parle normalement : tu peux interrompre Ángel.','active');return}
+    ws.onmessage=async e=>{
+      // L'API peut encoder le JSON dans une trame texte, ArrayBuffer ou Blob.
+      let body;
+      try {
+        if(typeof e.data==='string')body=e.data;
+        else if(e.data instanceof ArrayBuffer)body=new TextDecoder().decode(e.data);
+        else if(typeof Blob!=='undefined'&&e.data instanceof Blob)body=await e.data.text();
+        else throw new Error('Type de trame inattendu');
+      } catch(err){
+        setState('Trame illisible','Gemini a répondu dans un format non reconnu.','error');
+        return;
+      }
+      let data;
+      try{data=JSON.parse(body)}
+      catch(_){
+        setState('Réponse invalide','Gemini a renvoyé un message qui n’est pas du JSON valide.','error');
+        return;
+      }
+      if(data.error){
+        const code=String(data.error.code??data.error.status??'').slice(0,60);
+        setState('Erreur Gemini','La session Live a signalé une erreur'+(code?' ('+code+')':'')+'.','error');
+        return;
+      }
+      if(data.setupComplete){
+        setupDone=true;
+        if(setupTimer){clearTimeout(setupTimer);setupTimer=null}
+        setState('Je t’écoute','Connexion établie. Parle normalement : tu peux interrompre Ángel.','active');
+        return;
+      }
       if(data.serverContent){
         const c=data.serverContent;
         if(c.interrupted){clearPlayback();setState('Je t’écoute','Interruption reçue.','active')}
@@ -206,11 +240,12 @@ async function openLive(){
         if(c.turnComplete)setState('Je t’écoute','Tu peux continuer la conversation.','active');
       }
     };
-    ws.onerror=()=>{if(!stopped)setState('Erreur réseau','Connexion Gemini interrompue, arrête et réessaie.','error')};
+    ws.onerror=()=>{if(!stopped)setState('Erreur WebSocket','La connexion vocale Gemini rencontre une erreur réseau.','error')};
     ws.onclose=e=>{
       if(stopped)return;
       stop();
-      setState('Session fermée','La session s’est terminée (code '+e.code+'). Relance une nouvelle session.','error');
+      // Ne jamais afficher une raison de fermeture brute potentiellement sensible.
+      setState('Session fermée','Gemini a fermé le WebSocket (code '+e.code+'). Tu peux relancer un essai.','error');
     };
     // Limite locale : pas de session de test ouverte indéfiniment.
     sessionTimer=setTimeout(()=>{stop();setState('Limite atteinte','Session de test de 10 minutes terminée. Tu peux en démarrer une nouvelle.')},10*60*1000);
