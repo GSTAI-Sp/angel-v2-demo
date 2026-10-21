@@ -31,10 +31,17 @@
       return {type:'vocabulaire',source,cible,vocab_type};
     }
     if(args.type==='preference'){
-      const valeur=validText(args.valeur,110),categorie=args.categorie;
-      if(!valeur||!categories.has(categorie))
-        throw new Error('Préférence matériau ou zone manquante.');
-      return {type:'preference',valeur,categorie};
+      const raw=args.valeur??args.contenu??args.description??args.texte;
+      const categorie=args.categorie;
+      const valeur=validText(raw,110);
+      if(valeur && categories.has(categorie))
+        return {type:'preference',valeur,categorie};
+      // Les préférences de communication, devis, durée, vocabulaire et
+      // habitudes ne sont PAS des matériaux/zones. La mémoire long terme V1
+      // les accepte sans imposer un enum de profil artisan inadapté.
+      const souvenir=validText(raw,240,8);
+      if(souvenir) return {type:'souvenir',contenu:souvenir};
+      throw new Error('Précise ce que tu souhaites faire retenir à Ángel.');
     }
     const contenu=validText(args.contenu,240,8);
     if(!contenu)throw new Error('Précise le souvenir en une phrase.');
