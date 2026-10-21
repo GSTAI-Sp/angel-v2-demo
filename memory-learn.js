@@ -50,6 +50,7 @@
   }
   function propose(args){
     if(!getToken?.())return {status:'non_connecte',message:'Compte TEST requis.'};
+    if(proposal)return {status:'confirmation_deja_en_attente',message:'Une mémoire attend ton choix dans le panneau. Confirme ou annule avant d’en proposer une autre.'};
     try{
       proposal=makeProposal(args);
       panel.hidden=false;
@@ -63,6 +64,13 @@
       setStatus('Proposition refusée : '+e.message,true);
       return {status:'proposition_invalide',message:e.message};
     }
+  }
+  function fromVoiceText(text){
+    // Rattrapage local pour le cas où Gemini Live répond « je ne peux pas »
+    // au lieu d'utiliser son outil. La proposition reste NON enregistrée.
+    const candidate=window.AngelMemoryIntent?.extract(text);
+    if(!candidate)return {status:'aucune_demande_explicite'};
+    return propose(candidate);
   }
   async function save(){
     if(!proposal||busy)return;
@@ -95,6 +103,7 @@
   function init(config){
     if(config.baseUrl!==TEST_URL)throw new Error('Mémoire TEST uniquement.');
     pubKey=config.publicKey;getToken=config.getToken;refresh=config.refresh;
+    if(config.transcripts?.setFinalUserHandler)config.transcripts.setFinalUserHandler(line=>fromVoiceText(line.body));
     const style=elem('style');
     style.textContent='.angel-memory-learn{max-width:680px}.angel-memory-preview{border:1px solid #b9d8f6;background:#f2f8ff;border-radius:10px;padding:16px;margin-top:12px;font-size:14px;line-height:1.6}.angel-memory-learn select{width:100%;padding:11px 12px;border:1px solid #cbd8e8;border-radius:8px;background:#fff;color:#172b4b;font-size:15px}.angel-memory-learn .note{margin:8px 0}.angel-memory-learn .actions{margin:14px 0}.angel-memory-learn form{margin-top:14px}.angel-memory-learn .hidden-field{display:none}.angel-memory-learn textarea{font:inherit;width:100%;min-height:60px;padding:12px;border:1px solid #cbd8e8;border-radius:8px}';
     document.head.append(style);
@@ -157,5 +166,5 @@
   }
   function show(){if(panel)panel.hidden=false;}
   function hide(){if(panel)panel.hidden=true;cancel();}
-  window.AngelMemoryLearning={init,show,hide,propose};
+  window.AngelMemoryLearning={init,show,hide,propose,fromVoiceText};
 })();
