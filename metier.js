@@ -2,7 +2,7 @@
 // Jamais de secrets serveur ici, aucun accès à SpeedArti production.
 (() => {
 'use strict';
-const allowed=new Set(['rechercher_client','rechercher_chantier','rechercher_catalogue','preparer_devis','consulter_devis']);
+const allowed=new Set(['rechercher_client','rechercher_chantier','rechercher_catalogue','preparer_devis','consulter_devis','afficher_conversations']);
 const toolDefs=[
  {name:'rechercher_client',description:'Recherche un client fictif SpeedArti. Sans nom, liste les clients. Utilise ce résultat pour identifier un client avant un devis.',parameters:{type:'OBJECT',properties:{nom:{type:'STRING',description:'Nom du client demandé (facultatif)'}}}},
  {name:'rechercher_chantier',description:'Consulte la liste des chantiers fictifs dans SpeedArti TEST.',parameters:{type:'OBJECT',properties:{}}},
@@ -18,7 +18,8 @@ const toolDefs=[
       catalogue_id:{type:'STRING',description:'ID article catalogue réellement trouvé'}
     },required:['description','quantite','unite']}}
   },required:['titre','lignes']}},
- {name:'consulter_devis',description:'Affiche un devis brouillon fictif créé dans la base TEST. Utilise un ID issu du résultat de création.',parameters:{type:'OBJECT',properties:{devis_id:{type:'STRING'}},required:['devis_id']}}
+ {name:'consulter_devis',description:'Affiche un devis brouillon fictif créé dans la base TEST. Utilise un ID issu du résultat de création.',parameters:{type:'OBJECT',properties:{devis_id:{type:'STRING'}},required:['devis_id']}},
+ {name:'afficher_conversations',description:'Quand l’artisan dit « reprendre une conversation », « mes anciennes conversations » ou « retrouver mon historique », affiche immédiatement les archives dans la page. La reprise ne se fait ensuite que par le bouton Reprendre affiché à l’artisan. Ne prétends pas avoir ouvert le fil toi-même.',parameters:{type:'OBJECT',properties:{}}}
 ];
 const viewCSS=[
  '.angel-business{max-width:680px;margin-top:22px}',
@@ -194,7 +195,11 @@ async function toolCall(calls){
     let reply;
     if(!allowed.has(action))reply={error:'Cet outil vocal est interdit dans la démonstration.'};
     else{
-      try{reply=await call(action,args);}
+      try{
+        reply=action==='afficher_conversations'
+          ? window.AngelConversationArchive.openPicker()
+          : await call(action,args);
+      }
       catch(e){reply={error:e.message};info('Ángel : '+action+' — '+e.message,true);}
     }
     responses.push({id:fc.id,name:action,response:{result:reply}});
