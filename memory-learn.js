@@ -96,9 +96,24 @@
       });
       const body=await r.json().catch(()=>({}));
       if(!r.ok||body.saved!==true)throw new Error(String(body.error||'Échec de mémorisation.'));
+      // Le POST est accepté, mais on ne dit « retenu » que si la relecture
+      // via le service mémoire confirme bien la nouvelle donnée.
+      const justSaved=proposal;
+      const readback=refresh ? await refresh() : null;
+      const verified=readback && (
+        (justSaved.type==='souvenir' && (readback.long_terme||[]).some(
+          m=>m.fait===justSaved.contenu)) ||
+        (justSaved.type==='vocabulaire' && (readback.vocabulaire||[]).some(
+          m=>m.source===justSaved.source && m.cible===justSaved.cible)) ||
+        (justSaved.type==='preference' && (readback.profile||[]).some(
+          m=>m.categorie===justSaved.categorie && m.valeur?.texte===justSaved.valeur))
+      );
       proposal=null;approval.hidden=true;
-      setStatus('✓ MÉMOIRE ENREGISTRÉE dans Supabase TEST. Arrête puis redémarre le micro pour vérifier le rappel.');
-      if(refresh)await refresh();
+      if(verified){
+        setStatus('✓ MÉMOIRE VÉRIFIÉE : enregistrée et retrouvée dans Supabase TEST. Redémarre le micro pour le rappel.');
+      }else{
+        setStatus('⚠ Enregistrement accepté, mais la relecture n’a pas confirmé la mémoire. Redémarre le micro ou réessaie plus tard.',true);
+      }
     }catch(err){
       setStatus('✗ MÉMOIRE NON ENREGISTRÉE : '+err.message,true);
     }finally{busy=false;button.disabled=false;}
