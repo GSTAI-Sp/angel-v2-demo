@@ -104,12 +104,12 @@ async function refreshAfterWrite(){
  let fail=null;
  try{if(onChanged)await onChanged();}
  catch(e){fail=e;}
- try{await refresh();}
+ try{await refresh(true);}
  catch(e){fail=fail||e;}
  if(fail)note('Écriture effectuée, mais actualisation incomplète : '+fail.message,true);
 }
-async function refresh(){
- if(busy||!getToken?.())return false;
+async function refresh(force=false){
+ if((busy&&!force)||!getToken?.())return false;
  busy=true;
  try{
    const data=await request({action:'list'});
