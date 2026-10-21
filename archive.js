@@ -99,6 +99,8 @@
     const operation=queue.then(async()=>{
       await storeFinal(conversationId,msg);
       unsaved.delete(msg.id);
+      if(current?.id===conversationId && !historyCache.some(x=>x.client_message_id===msg.id))
+        historyCache.push({client_message_id:msg.id,speaker:msg.speaker,body:msg.body});
       if(current?.id===conversationId && current.title==='Nouvelle conversation' && msg.speaker==='user'){
         const title=msg.body.replace(/\\s+/g,' ').slice(0,65);
         if(title){try{current=await change(conversationId,{title,updated_at:new Date().toISOString()});}
