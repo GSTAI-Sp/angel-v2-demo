@@ -137,11 +137,31 @@
       const btn=element('button','Reprendre','secondary');
       btn.type='button';
       btn.addEventListener('click',()=>{void switchTo(c.id);});
-      row.append(title,btn);listEl.append(row);
+      const del=element('button','Supprimer','secondary');del.type='button';
+      del.addEventListener('click',()=>{
+        if(window.confirm('Supprimer définitivement cette conversation et ses messages ?'))
+          void removeArchived(c.id);
+      });
+      row.append(title,btn,del);listEl.append(row);
     }
     if(!listEl.childNodes.length)listEl.append(element('p','Aucune conversation archivée.','muted'));
   }
   async function refresh(){all=await list();render();}
+  async function removeArchived(id){
+    if(!ready||busy||!UUID.test(id))return;
+    busy=true;
+    try{
+      await flush();
+      const rows=await req('angel_v2_conversations?id=eq.'+p(id)+'&user_id=eq.'+p(ownerId)+
+        '&status=eq.archived&select=id',{
+        method:'DELETE',prefer:'return=representation'
+      });
+      if(!rows?.[0])throw new Error('Conversation introuvable ou non archivée.');
+      await refresh();
+      status('Conversation et transcriptions supprimées.');
+    }catch(e){status('Suppression impossible : '+e.message,true);}
+    finally{busy=false;}
+  }
   async function show(){
     if(busy)return;
     busy=true;ownerId=null;ready=false;
@@ -245,5 +265,5 @@
     try{await flush();return true;}
     catch(e){status(e.message,true);return false;}
   }
-  window.AngelConversationArchive={init,show,hide,context,logoutAllowed,isReady:()=>ready};
+  window.AngelConversationArchive={init,show,hide,context,logoutAllowed,isReady:()=>ready&&!busy};
 })();
