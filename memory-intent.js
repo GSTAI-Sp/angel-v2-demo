@@ -6,7 +6,7 @@
     if(typeof text!=='string')return null;
     const raw=text.trim().replace(/[.!?\s]+$/g,'');
     if(raw.length<12||raw.length>700)return null;
-    const lead="(?:\\s*(?:(?:salut|bonjour|ok|hey)\\s+)?(?:ang[eè]l(?:e|a)?\\s*[,;:!]?\\s*)?(?:s['’]il te pla[iî]t\\s*[,;:]?\\s*)?)";
+    const lead="(?:\\s*(?:(?:salut|bonjour|ok|hey)\\s+)?(?:[aàáâ]ng[eèé]l(?:e|a)?\\s*[,;:!]?\\s*)?(?:s['’]il te pla[iî]t\\s*[,;:]?\\s*)?)";
     const phrases=[
       "(?:retiens|m[eé]morise|souviens[- ]toi|garde(?:s)? en m[eé]moire|enregistre dans ta m[eé]moire)\\s+(?:bien\\s+)?(?:que\\s+)?",
       "(?:je (?:veux|voudrais|souhaite) que tu)\\s+(?:retiennes|m[eé]morises|gardes en m[eé]moire)\\s+(?:que\\s+)?",
