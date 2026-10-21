@@ -5,7 +5,7 @@
   const PROJECT='https://dchunxngtdbtgxbccmlb.supabase.co';
   const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   let publicKey='', getToken=null, onSwitch=null, transcript=null;
-  let panel=null,notice=null,listEl=null,titleEl=null,retryButton=null,newButton=null;
+  let panel=null,notice=null,listEl=null,titleEl=null,retryButton=null,newButton=null,resumeButton=null,archiveDetails=null,archiveCount=null,jumpButton=null;
   let ownerId=null,current=null,all=[],historyCache=[],queue=Promise.resolve(),busy=false,ready=false;
   const unsaved=new Map();
   function element(tag,content,cls){
@@ -131,10 +131,13 @@
   function render(){
     if(!listEl)return;
     listEl.replaceChildren();
-    for(const c of all.filter(x=>x.status==='archived').slice(0,30)){
+    const archived=all.filter(x=>x.status==='archived').slice(0,30);
+    if(archiveCount)archiveCount.textContent=archived.length+' conversation'+(archived.length>1?'s':'')+' archivée'+(archived.length>1?'s':'');
+    if(resumeButton){resumeButton.disabled=!ready||!archived.length;resumeButton.textContent=archived.length?'↩ Reprendre la dernière conversation':'Aucune archive à reprendre';}
+    for(const c of archived){
       const row=element('div',null,'archive-row');
       const title=element('span',c.title||'Conversation');
-      const btn=element('button','Reprendre','secondary');
+      const btn=element('button','Reprendre cette conversation','primary');
       btn.type='button';
       btn.addEventListener('click',()=>{void switchTo(c.id);});
       const del=element('button','Supprimer','secondary');del.type='button';
@@ -144,7 +147,8 @@
       });
       row.append(title,btn,del);listEl.append(row);
     }
-    if(!listEl.childNodes.length)listEl.append(element('p','Aucune conversation archivée.','muted'));
+    if(!listEl.childNodes.length)listEl.append(element('p','Aucune archive pour le moment. Clique sur « Nouvelle conversation » pour archiver le fil actuel, puis tu pourras le reprendre.','muted'));
+    if(archiveDetails)archiveDetails.open=true;
   }
   async function refresh(){all=await list();render();}
   async function removeArchived(id){
@@ -229,19 +233,32 @@
     document.head.append(s);
     panel=element('section',null,'card');panel.id='angel-archive-panel';panel.hidden=true;
     const heading=element('h2','Mes conversations (TEST)');
+    const intro=element('p','Pour reprendre une ancienne conversation : clique sur « Reprendre » ci-dessous. Ensuite, démarre le micro pour continuer à lui parler.','muted');
     titleEl=element('p','Nouvelle conversation','muted');
     notice=element('p','Vérification…','archive-status');
     newButton=element('button','+ Nouvelle conversation','secondary');newButton.type='button';
     newButton.disabled=true;newButton.addEventListener('click',()=>{void switchTo();});
     retryButton=element('button','Réessayer les sauvegardes','secondary');retryButton.type='button';retryButton.hidden=true;
     retryButton.addEventListener('click',()=>{void retry();});
-    const actions=element('div',null,'actions');actions.append(newButton,retryButton);
-    const details=document.createElement('details');
-    const summary=element('summary','Conversations archivées');
+    resumeButton=element('button','↩ Reprendre la dernière conversation','primary');
+    resumeButton.type='button';resumeButton.disabled=true;
+    resumeButton.addEventListener('click',()=>{const last=all.find(x=>x.status==='archived');if(last)void switchTo(last.id);});
+    const actions=element('div',null,'actions');actions.append(newButton,resumeButton,retryButton);
+    const details=document.createElement('details');details.open=true;archiveDetails=details;
+    const summary=element('summary','Conversations archivées — ouvrir la liste');
+    archiveCount=element('span','', 'archive-count');
+    summary.append(' · ',archiveCount);
     listEl=element('div',null,'archive-list');details.append(summary,listEl);
     const privacy=element('p','Seul le texte final de tes échanges est conservé dans Supabase TEST. Aucun enregistrement audio brut.','note');
-    panel.append(heading,titleEl,notice,actions,details,privacy);
-    document.getElementById('voicePanel').insertAdjacentElement('afterend',panel);
+    panel.append(heading,intro,titleEl,notice,actions,details,privacy);
+    const voicePanel=document.getElementById('voicePanel');
+    voicePanel.insertAdjacentElement('afterend',panel);
+    jumpButton=element('button','📂 Reprendre une conversation','secondary');
+    jumpButton.type='button';
+    jumpButton.id='angel-open-archives';
+    jumpButton.addEventListener('click',()=>{archiveDetails.open=true;panel.scrollIntoView({behavior:'smooth',block:'start'});});
+    const stopBtn=document.getElementById('stopBtn');
+    stopBtn.insertAdjacentElement('afterend',jumpButton);
     transcript.setFinalHandler(addFinal);
     window.addEventListener('beforeunload',event=>{
       if(unsaved.size){event.preventDefault();event.returnValue='';}
@@ -265,5 +282,13 @@
     try{await flush();return true;}
     catch(e){status(e.message,true);return false;}
   }
-  window.AngelConversationArchive={init,show,hide,context,logoutAllowed,isReady:()=>ready&&!busy};
+  function openPicker(){
+    if(!ready)return {status:'indisponible'};
+    if(archiveDetails)archiveDetails.open=true;
+    if(panel)panel.scrollIntoView({behavior:'smooth',block:'start'});
+    const saved=all.filter(c=>c.status==='archived').slice(0,8);
+    return {status:'liste_affichee',archives:saved.map(x=>({titre:x.title,date:x.created_at})),
+      aide:"Demande à l’artisan de cliquer sur « Reprendre cette conversation », puis de redémarrer le micro. Ne prétends pas avoir changé de conversation automatiquement."};
+  }
+  window.AngelConversationArchive={init,show,hide,context,logoutAllowed,openPicker,isReady:()=>ready&&!busy};
 })();
