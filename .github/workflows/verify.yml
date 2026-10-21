@@ -26,10 +26,15 @@ jobs:
           assert "dchunxngtdbtgxbccmlb" in html
           metier = Path("metier.js").read_text(encoding="utf8")
           preview = Path("transcript-preview.js").read_text(encoding="utf8")
+          archives = Path("archive.js").read_text(encoding="utf8")
           for forbidden in ["hjrmkkybhhwfelmatcga", "GEMINI_API_KEY", "SUPABASE_SERVICE_ROLE_KEY", "sb_secret_", "AIza"]:
-              assert forbidden not in html and forbidden not in metier and forbidden not in preview, "Référence interdite détectée"
+              assert forbidden not in html and forbidden not in metier and forbidden not in preview and forbidden not in archives, "Référence interdite détectée"
           assert '<script src="./metier.js"></script>' in html
           assert '<script src="./transcript-preview.js"></script>' in html
+          assert '<script src="./archive.js"></script>' in html
+          assert "const archiveReady=await archives.show()" in html
+          assert "if(!archives.isReady())" in html
+          assert "resolution=ignore-duplicates" in archives
           assert 'transcripts.turnComplete()' in html
           assert 'tools:[{functionDeclarations:metier.toolDefs}]' in html
           assert 'metier.toolCall(data.toolCall.functionCalls)' in html
@@ -37,8 +42,9 @@ jobs:
           assert len(js) > 2500
           Path("/tmp/angel-v2-client.js").write_text(js, encoding="utf8")
           PY
-      - name: Vérifier les trois scripts JavaScript
+      - name: Vérifier les quatre scripts JavaScript
         run: |
           node --check /tmp/angel-v2-client.js
           node --check metier.js
           node --check transcript-preview.js
+          node --check archive.js
