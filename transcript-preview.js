@@ -50,7 +50,7 @@
     heading.textContent='Historique de la conversation en cours';
     const notice=document.createElement('p');
     notice.className='history-notice';
-    notice.textContent='Prévisualisation locale : visible durant cette page, non archivée tant que le stockage sécurisé n’est pas activé.';
+    notice.textContent='Sous-titres en direct. L’enregistrement des passages finalisés est confirmé dans « Mes conversations (TEST) ».';
     const div=document.createElement('div');
     div.id='transcriptHistory';div.className='transcript-history';
     div.setAttribute('aria-live','polite');
