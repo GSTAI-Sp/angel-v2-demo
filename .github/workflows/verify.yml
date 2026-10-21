@@ -49,7 +49,7 @@ jobs:
           assert "AngelMemoryIntent" in learning
           assert "transcripts.setFinalUserHandler" in learning
           assert "learning.init({baseUrl:BASE_URL" in html
-          assert "transcripts});" in html
+          assert "transcripts,onSaved:()=>manager.refresh()});" in html
           assert "AngelMemoryLearning.propose(args)" in metier
           assert "learning.init(" in html
           assert "confirmation:true" in learning
