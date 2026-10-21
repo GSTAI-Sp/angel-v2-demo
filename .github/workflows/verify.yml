@@ -29,14 +29,21 @@ jobs:
           archives = Path("archive.js").read_text(encoding="utf8")
           memory = Path("memory.js").read_text(encoding="utf8")
           learning = Path("memory-learn.js").read_text(encoding="utf8")
+          manager = Path("memory-manager.js").read_text(encoding="utf8")
           intent = Path("memory-intent.js").read_text(encoding="utf8")
           for forbidden in ["hjrmkkybhhwfelmatcga", "GEMINI_API_KEY", "SUPABASE_SERVICE_ROLE_KEY", "sb_secret_", "AIza"]:
-              assert forbidden not in html and forbidden not in metier and forbidden not in preview and forbidden not in archives and forbidden not in memory and forbidden not in learning and forbidden not in intent, "Référence interdite détectée"
+              assert forbidden not in html and forbidden not in metier and forbidden not in preview and forbidden not in archives and forbidden not in memory and forbidden not in learning and forbidden not in intent and forbidden not in manager, "Référence interdite détectée"
           assert '<script src="./metier.js"></script>' in html
           assert '<script src="./transcript-preview.js"></script>' in html
           assert '<script src="./archive.js"></script>' in html
           assert '<script src="./memory.js"></script>' in html
           assert '<script src="./memory-learn.js"></script>' in html
+          assert '<script src="./memory-manager.js"></script>' in html
+          assert "angel-memory-manager-open" in manager
+          assert "confirm_delete:'SUPPRIMER'" in manager
+          assert "confirm_update:true" in manager
+          assert "manager.init(" in html
+          assert "manager.hide()" in html
           assert '<script src="./memory-intent.js"></script>' in html
           assert "setFinalUserHandler" in preview
           assert "AngelMemoryIntent" in learning
@@ -74,6 +81,8 @@ jobs:
           node --check archive.js
           node --check memory.js
           node --check memory-learn.js
+          node --check memory-manager.js
           node --check memory-intent.js
           node memory-intent.test.cjs
           node memory-ui.test.cjs
+          node memory-manager.test.cjs
