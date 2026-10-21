@@ -28,12 +28,19 @@ jobs:
           preview = Path("transcript-preview.js").read_text(encoding="utf8")
           archives = Path("archive.js").read_text(encoding="utf8")
           memory = Path("memory.js").read_text(encoding="utf8")
+          learning = Path("memory-learn.js").read_text(encoding="utf8")
           for forbidden in ["hjrmkkybhhwfelmatcga", "GEMINI_API_KEY", "SUPABASE_SERVICE_ROLE_KEY", "sb_secret_", "AIza"]:
-              assert forbidden not in html and forbidden not in metier and forbidden not in preview and forbidden not in archives and forbidden not in memory, "Référence interdite détectée"
+              assert forbidden not in html and forbidden not in metier and forbidden not in preview and forbidden not in archives and forbidden not in memory and forbidden not in learning, "Référence interdite détectée"
           assert '<script src="./metier.js"></script>' in html
           assert '<script src="./transcript-preview.js"></script>' in html
           assert '<script src="./archive.js"></script>' in html
           assert '<script src="./memory.js"></script>' in html
+          assert '<script src="./memory-learn.js"></script>' in html
+          assert "AngelMemoryLearning.propose(args)" in metier
+          assert "learning.init(" in html
+          assert "confirmation:true" in learning
+          assert "proposer_memoire" in metier
+          assert "enregistrer_memoire" not in metier.split("const toolDefs=", 1)[1].split("const viewCSS=", 1)[0]
           assert 'memories.context()' in html
           assert 'angel-live-memory' in memory
           assert "const archiveReady=await archives.show()" in html
@@ -52,10 +59,11 @@ jobs:
           assert len(js) > 2500
           Path("/tmp/angel-v2-client.js").write_text(js, encoding="utf8")
           PY
-      - name: Vérifier les cinq scripts JavaScript
+      - name: Vérifier les six scripts JavaScript
         run: |
           node --check /tmp/angel-v2-client.js
           node --check metier.js
           node --check transcript-preview.js
           node --check archive.js
           node --check memory.js
+          node --check memory-learn.js
