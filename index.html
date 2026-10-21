@@ -58,7 +58,7 @@ footer{border-top:1px solid #e2e9f0;padding:21px 0;color:#7b8999;font-size:12px}
 </section>
 <section class="card" id="voicePanel" hidden>
 <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
-<div><h2>Ángel Live <span class="pill">Bêta admin</span></h2><p class="muted" style="margin:6px 0">Session vocale sans outil métier</p></div>
+<div><h2>Ángel Live <span class="pill">Bêta admin</span></h2><p class="muted" style="margin:6px 0">Conversation vocale + modules métier TEST</p></div>
 <button class="secondary" id="logoutBtn" type="button">Déconnexion</button>
 </div>
 <div class="status" aria-live="polite"><span id="dot" class="dot"></span><strong id="status">Micro coupé</strong></div>
@@ -69,9 +69,10 @@ footer{border-top:1px solid #e2e9f0;padding:21px 0;color:#7b8999;font-size:12px}
 </div>
 <div class="log"><div class="transcript"><strong>Toi :</strong> <span id="heard">—</span></div><div class="transcript"><strong>Ángel :</strong> <span id="said">—</span></div></div>
 </section>
-<p class="note">Essais administrateurs uniquement. Les données utilisées doivent rester fictives. Aucune création de devis ni action client n’est disponible dans cette version. L’audio fonctionne uniquement pendant la session ouverte, sous réserve des limites du navigateur et de la connexion.</p>
+<p class="note">Essais administrateurs uniquement. Les données utilisées doivent rester fictives. Les outils métier ne concernent que des données fictives et les devis sont des brouillons spécimens. Aucun devis n’est envoyé. L’audio fonctionne uniquement pendant la session ouverte, sous réserve des limites du navigateur et de la connexion.</p>
 </main>
 <footer><div class="wrap">SpeedArti — Prototype isolé · Projet Supabase Ángel V2 · Aucun accès à SpeedArti en production</div></footer>
+<script src="./metier.js"></script>
 <script>
 (() => {
 'use strict';
@@ -82,6 +83,7 @@ const TOKEN_ENDPOINT=BASE_URL+'/functions/v1/angel-live-token';
 const WS_URL='wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained';
 const MODEL='models/gemini-3.8-live';
 const $=id=>document.getElementById(id);
+const metier=window.AngelBusinessDemo;
 let jwt=null, socket=null,stream=null, inputCtx=null, outputCtx=null, source=null, processor=null, sink=null;
 let playback=[], nextPlayTime=0, starting=false, stopped=true, setupDone=false, sessionTimer=null, setupTimer=null;
 function setState(label, message, mode=''){
@@ -193,7 +195,8 @@ async function openLive(){
         generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Aoede'}}}},
         sessionResumption:{},
         inputAudioTranscription:{},outputAudioTranscription:{},
-        systemInstruction:{parts:[{text:"Tu es Ángel, l'assistante vocale française des artisans. Tu participes à une démonstration : ne prétends jamais consulter de vrais clients ou créer des documents. Réponds naturellement, simplement et brièvement en français."}]}
+        tools:[{functionDeclarations:metier.toolDefs}],
+        systemInstruction:{parts:[{text:"Tu es Ángel, assistante vocale des artisans dans SpeedArti. Les données de cette démo sont uniquement fictives. Tu as réellement accès aux outils chercher clients, consulter chantiers, chercher catalogue, préparer devis et consulter devis de test. Si l'artisan demande un devis, commence par rechercher le client, pose les questions manquantes, puis appelle preparer_devis avec les quantités, unités, prix HT et taux de TVA explicites. Ne crée JAMAIS de prix, de TVA ou de chiffrage technique. Si le prix HT manque, demande-le à l'artisan ; le catalogue de TEST est actuellement vide. Ne prétends jamais que le devis existe sans résultat d'outil. preparer_devis produit uniquement une proposition : l'artisan DOIT cliquer sur le bouton de confirmation visible pour créer un brouillon SPÉCIMEN. Tu ne peux pas cliquer sur ce bouton ni exécuter la confirmation. Tu peux dire à l'artisan où cliquer. Aucune facture, aucun envoi email, aucune donnée client réelle. Si une action échoue, explique l'erreur sans inventer de réussite. Réponds de manière naturelle, concise, en français."}]}
       }}));
       setState('Initialisation','WebSocket connecté. Attente de confirmation de Gemini Live…');
       setupTimer=setTimeout(()=>{
@@ -229,6 +232,10 @@ async function openLive(){
         setupDone=true;
         if(setupTimer){clearTimeout(setupTimer);setupTimer=null}
         setState('Je t’écoute','Connexion établie. Parle normalement : tu peux interrompre Ángel.','active');
+        return;
+      }
+      if(data.toolCall?.functionCalls){
+        void metier.toolCall(data.toolCall.functionCalls).catch(err=>{setState('Erreur outil métier',err?.message||'Erreur de raccordement','error')});
         return;
       }
       if(data.serverContent){
@@ -268,15 +275,17 @@ $('loginForm').addEventListener('submit',async event=>{
     jwt=data.access_token;
     $('password').value='';
     $('loginPanel').hidden=true;$('voicePanel').hidden=false;
+    void metier.show();
   }catch(err){$('loginError').textContent=err.message||'Erreur de connexion.'}
   finally{btn.disabled=false;btn.textContent='Se connecter'}
 });
 $('startBtn').addEventListener('click',()=>{void openLive()});
 $('stopBtn').addEventListener('click',()=>{stop();setState('Micro coupé','La conversation est arrêtée.')});
 $('logoutBtn').addEventListener('click',()=>{
-  stop();jwt=null;$('voicePanel').hidden=true;$('loginPanel').hidden=false;
+  stop();jwt=null;metier.hide();$('voicePanel').hidden=true;$('loginPanel').hidden=false;
   setState('Micro coupé','La conversation est arrêtée.');
 });
+metier.init({baseUrl:BASE_URL,publicKey:PUBLIC_KEY,getToken:()=>jwt,getSocket:()=>socket});
 window.addEventListener('pagehide',stop);
 })();
 </script>
