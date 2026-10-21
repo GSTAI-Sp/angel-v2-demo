@@ -76,9 +76,9 @@ footer{border-top:1px solid #e2e9f0;padding:21px 0;color:#7b8999;font-size:12px}
 (() => {
 'use strict';
 const REF='dchunxngtdbtgxbccmlb';
-const URL='https://'+REF+'.supabase.co';
+const BASE_URL='https://'+REF+'.supabase.co';
 const PUBLIC_KEY='sb_publishable_0Y7z5OGhZOkRyK5sattmyA_ul2BNv7v'; // Supabase publishable key (public client identifier, NOT a secret)
-const TOKEN_ENDPOINT=URL+'/functions/v1/angel-live-token';
+const TOKEN_ENDPOINT=BASE_URL+'/functions/v1/angel-live-token';
 const WS_URL='wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained';
 const MODEL='models/gemini-3.8-live';
 const $=id=>document.getElementById(id);
@@ -224,7 +224,7 @@ $('loginForm').addEventListener('submit',async event=>{
   const btn=$('loginBtn');btn.disabled=true;btn.textContent='Connexion…';
   try{
     const email=$('email').value.trim(), password=$('password').value;
-    const res=await fetch(URL+'/auth/v1/token?grant_type=password',{
+    const res=await fetch(BASE_URL+'/auth/v1/token?grant_type=password',{
       method:'POST',headers:{'apikey':PUBLIC_KEY,'Content-Type':'application/json'},
       body:JSON.stringify({email,password}),cache:'no-store'
     });
