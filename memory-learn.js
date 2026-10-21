@@ -7,7 +7,8 @@
   const vocabTypes=new Set(['synonyme','raccourci','correction','expression_regionale']);
   const categories=new Set(['materiaux_favoris','zones_intervention']);
   let getToken=null,pubKey='',refresh=null,panel=null,summary=null,notice=null,approval=null,voiceStatus=null,manualDetails=null,quickBtn=null;
-  let proposal=null,busy=false;
+  let proposal=null,busy=false,autoEnabled=false,autoCheckbox=null,autoCount=0;
+  const suggested=new Set();
   function elem(tag,content,cls){
     const e=document.createElement(tag);
     if(content!==undefined&&content!==null)e.textContent=content;
@@ -82,11 +83,23 @@
     }
   }
   function fromVoiceText(text){
-    // Rattrapage local pour le cas où Gemini Live répond « je ne peux pas »
-    // au lieu d'utiliser son outil. La proposition reste NON enregistrée.
-    const candidate=window.AngelMemoryIntent?.extract(text);
-    if(!candidate)return {status:'aucune_demande_explicite'};
-    return propose(candidate);
+    // Une demande explicite de mémoire est prioritaire et indépendante de l'option automatique.
+    const explicit=window.AngelMemoryIntent?.extract(text);
+    if(explicit)return propose(explicit);
+    // Opt-in par session, au plus 3 suggestions, jamais une écriture silencieuse.
+    if(!autoEnabled||autoCount>=3||busy||proposal||!getToken?.())
+      return {status:'suggestion_automatique_inactive'};
+    const candidate=window.AngelAutoMemory?.extract(text);
+    if(!candidate)return {status:'aucune_habitude_sure'};
+    const key=window.AngelAutoMemory.key(candidate);
+    if(!key||suggested.has(key))return {status:'deja_suggere'};
+    suggested.add(key);
+    const result=propose(candidate);
+    if(result.status==='confirmation_humaine_requise'){
+      autoCount++;
+      setStatus('Suggestion automatique NON ENREGISTRÉE ('+autoCount+'/3) : vérifie puis confirme ou refuse.');
+    }
+    return result;
   }
   async function save(){
     if(!proposal||busy)return;
@@ -140,6 +153,24 @@
     document.head.append(style);
     panel=elem('section',null,'card angel-memory-learn');panel.id='angel-memory-learn-panel';panel.hidden=true;
     const title=elem('h2','Apprentissage contrôlé d’Ángel');
+    const autoLabel=elem('label',null,'');
+    autoLabel.style.display='flex';
+    autoLabel.style.alignItems='center';
+    autoLabel.style.gap='10px';
+    autoLabel.style.margin='18px 0 10px';
+    autoCheckbox=elem('input');autoCheckbox.type='checkbox';autoCheckbox.checked=false;
+    autoCheckbox.id='angel-memory-auto-optin';
+    autoCheckbox.style.width='auto';
+    autoCheckbox.style.minWidth='22px';
+    const autoText=elem('span','Suggérer automatiquement les habitudes et termes métier (3 maximum par session).');
+    autoLabel.append(autoCheckbox,autoText);
+    autoCheckbox.addEventListener('change',()=>{
+      autoEnabled=autoCheckbox.checked===true;
+      setStatus(autoEnabled
+        ? 'Suggestions automatiques activées : AUCUNE sauvegarde sans ton clic.'
+        : 'Suggestions automatiques désactivées. Les commandes « retiens que » restent possibles.');
+    });
+    const privacy=elem('p','Option désactivée par défaut. Analyse locale des seules paroles finalisées : pas de données clients, prix ou secrets. Tu peux refuser chaque proposition.','note');
     const intro=elem('p','Dis « Ángel, retiens que… » ou clique sur « Écrire une mémoire ». Le texte n’est sauvegardé qu’après clic sur « Confirmer cette mémoire ».','muted');
     notice=elem('p','Aucune mémoire en attente.','archive-status');
     approval=elem('div',null,'angel-memory-preview');approval.hidden=true;
@@ -192,7 +223,7 @@
         {type:t,contenu:content.input.value});
     });
     update();details.append(form);
-    panel.append(title,intro,notice,approval,details);
+    panel.append(title,intro,autoLabel,privacy,notice,approval,details);
     // Le panneau est placé juste sous la conversation, avant les archives et modules métiers.
     document.getElementById('voicePanel').insertAdjacentElement('afterend',panel);
     quickBtn=elem('button','🧠 Écrire une mémoire','secondary');
@@ -212,6 +243,10 @@
   function show(){if(panel)panel.hidden=false;}
   function hide(){
     if(panel)panel.hidden=true;
+    autoEnabled=false;
+    autoCount=0;
+    suggested.clear();
+    if(autoCheckbox)autoCheckbox.checked=false;
     proposal=null;
     if(approval)approval.hidden=true;
     if(voiceStatus)voiceStatus.textContent='Mémoire : aucune sauvegarde en cours.';
