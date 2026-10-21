@@ -6,7 +6,7 @@
   const types=new Set(['vocabulaire','preference','souvenir']);
   const vocabTypes=new Set(['synonyme','raccourci','correction','expression_regionale']);
   const categories=new Set(['materiaux_favoris','zones_intervention']);
-  let getToken=null,pubKey='',refresh=null,panel=null,summary=null,notice=null,approval=null;
+  let getToken=null,pubKey='',refresh=null,panel=null,summary=null,notice=null,approval=null,voiceStatus=null,manualDetails=null,quickBtn=null;
   let proposal=null,busy=false;
   function elem(tag,content,cls){
     const e=document.createElement(tag);
@@ -47,17 +47,26 @@
   }
   function setStatus(text,error=false){
     if(notice){notice.textContent=text;notice.style.color=error?'#ae2935':'#496781';}
+    if(voiceStatus){
+      voiceStatus.textContent=text;
+      voiceStatus.style.color=error?'#ae2935':'#1d4873';
+    }
   }
   function propose(args){
     if(!getToken?.())return {status:'non_connecte',message:'Compte TEST requis.'};
-    if(proposal)return {status:'confirmation_deja_en_attente',message:'Une mémoire attend ton choix dans le panneau. Confirme ou annule avant d’en proposer une autre.'};
+    if(proposal){
+      if(panel)panel.scrollIntoView({behavior:'smooth',block:'start'});
+      setStatus('Une mémoire est déjà en attente : confirme-la ou refuse-la avant toute nouvelle proposition.');
+      return {status:'confirmation_deja_en_attente',message:'Une mémoire attend ton choix dans le panneau. Confirme ou annule avant d’en proposer une autre.'};
+    }
     try{
       proposal=makeProposal(args);
       panel.hidden=false;
       approval.hidden=false;
       summary.textContent=pretty(proposal);
-      setStatus('Cette information n’est pas encore mémorisée. Vérifie-la puis clique sur Confirmer.');
-      approval.scrollIntoView({behavior:'smooth',block:'nearest'});
+      setStatus('⚠ NON ENREGISTRÉE — clique sur « Confirmer cette mémoire » pour la sauvegarder dans Supabase TEST.');
+      // Affichage immédiatement sous les boutons vocaux, jamais au bas d'un menu replié.
+      panel.scrollIntoView({behavior:'smooth',block:'start'});
       return {status:'confirmation_humaine_requise',memoire:pretty(proposal),
         message:'L’artisan doit cliquer sur « Confirmer cette mémoire » dans la démo. Ne prétends pas que l’enregistrement est effectué.'};
     }catch(e){
@@ -88,17 +97,17 @@
       const body=await r.json().catch(()=>({}));
       if(!r.ok||body.saved!==true)throw new Error(String(body.error||'Échec de mémorisation.'));
       proposal=null;approval.hidden=true;
-      setStatus('Mémoire enregistrée dans SpeedArti TEST. Redémarre le micro pour vérifier qu’Ángel s’en souvient.');
+      setStatus('✓ MÉMOIRE ENREGISTRÉE dans Supabase TEST. Arrête puis redémarre le micro pour vérifier le rappel.');
       if(refresh)await refresh();
     }catch(err){
-      setStatus('Mémoire non enregistrée : '+err.message,true);
+      setStatus('✗ MÉMOIRE NON ENREGISTRÉE : '+err.message,true);
     }finally{busy=false;button.disabled=false;}
   }
   function cancel(){
     if(busy)return;
     proposal=null;
     approval.hidden=true;
-    setStatus('Proposition annulée, aucune mémoire enregistrée.');
+    setStatus('Proposition annulée : aucune mémoire enregistrée.');
   }
   function init(config){
     if(config.baseUrl!==TEST_URL)throw new Error('Mémoire TEST uniquement.');
@@ -109,7 +118,7 @@
     document.head.append(style);
     panel=elem('section',null,'card angel-memory-learn');panel.id='angel-memory-learn-panel';panel.hidden=true;
     const title=elem('h2','Apprentissage contrôlé d’Ángel');
-    const intro=elem('p','Dis « Ángel, retiens que… » ou utilise le formulaire ci-dessous. Rien n’est mémorisé sans ton clic de confirmation.','muted');
+    const intro=elem('p','Dis « Ángel, retiens que… » ou clique sur « Écrire une mémoire ». Le texte n’est sauvegardé qu’après clic sur « Confirmer cette mémoire ».','muted');
     notice=elem('p','Aucune mémoire en attente.','archive-status');
     approval=elem('div',null,'angel-memory-preview');approval.hidden=true;
     const apt=elem('h3','Information à mémoriser');apt.style.margin='0 0 8px';
@@ -118,7 +127,7 @@
     const refuse=elem('button','Ne pas mémoriser','secondary');refuse.type='button';refuse.addEventListener('click',cancel);
     const actions=elem('div',null,'actions');actions.append(confirm,refuse);
     approval.append(apt,summary,actions);
-    const details=document.createElement('details');
+    const details=document.createElement('details');manualDetails=details;
     const head=elem('summary','Mémoriser sans le microphone');details.append(head);
     const form=document.createElement('form');
     const chooser=elem('select');chooser.id='angel-memo-type';
@@ -162,9 +171,28 @@
     });
     update();details.append(form);
     panel.append(title,intro,notice,approval,details);
-    document.getElementById('angel-archive-panel').insertAdjacentElement('afterend',panel);
+    // Le panneau est placé juste sous la conversation, avant les archives et modules métiers.
+    document.getElementById('voicePanel').insertAdjacentElement('afterend',panel);
+    quickBtn=elem('button','🧠 Écrire une mémoire','secondary');
+    quickBtn.type='button';quickBtn.id='angel-memory-open';
+    quickBtn.addEventListener('click',()=>{
+      panel.hidden=false;manualDetails.open=true;
+      panel.scrollIntoView({behavior:'smooth',block:'start'});
+    });
+    const stopButton=document.getElementById('stopBtn');
+    stopButton.insertAdjacentElement('afterend',quickBtn);
+    voiceStatus=elem('p','Mémoire : rien de nouveau enregistré. Pour enregistrer, une confirmation écrite est obligatoire.','archive-status');
+    voiceStatus.id='angel-memory-save-status';
+    voiceStatus.setAttribute('role','status');
+    voiceStatus.setAttribute('aria-live','polite');
+    document.getElementById('voicePanel').append(voiceStatus);
   }
   function show(){if(panel)panel.hidden=false;}
-  function hide(){if(panel)panel.hidden=true;cancel();}
+  function hide(){
+    if(panel)panel.hidden=true;
+    proposal=null;
+    if(approval)approval.hidden=true;
+    if(voiceStatus)voiceStatus.textContent='Mémoire : aucune sauvegarde en cours.';
+  }
   window.AngelMemoryLearning={init,show,hide,propose,fromVoiceText};
 })();
