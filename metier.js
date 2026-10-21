@@ -2,7 +2,7 @@
 // Jamais de secrets serveur ici, aucun accès à SpeedArti production.
 (() => {
 'use strict';
-const allowed=new Set(['rechercher_client','rechercher_chantier','rechercher_catalogue','preparer_devis','consulter_devis','afficher_conversations']);
+const allowed=new Set(['rechercher_client','rechercher_chantier','rechercher_catalogue','preparer_devis','consulter_devis','afficher_conversations','proposer_memoire']);
 const toolDefs=[
  {name:'rechercher_client',description:'Recherche un client fictif SpeedArti. Sans nom, liste les clients. Utilise ce résultat pour identifier un client avant un devis.',parameters:{type:'OBJECT',properties:{nom:{type:'STRING',description:'Nom du client demandé (facultatif)'}}}},
  {name:'rechercher_chantier',description:'Consulte la liste des chantiers fictifs dans SpeedArti TEST.',parameters:{type:'OBJECT',properties:{}}},
@@ -19,7 +19,16 @@ const toolDefs=[
     },required:['description','quantite','unite']}}
   },required:['titre','lignes']}},
  {name:'consulter_devis',description:'Affiche un devis brouillon fictif créé dans la base TEST. Utilise un ID issu du résultat de création.',parameters:{type:'OBJECT',properties:{devis_id:{type:'STRING'}},required:['devis_id']}},
- {name:'afficher_conversations',description:'Quand l’artisan dit « reprendre une conversation », « mes anciennes conversations » ou « retrouver mon historique », affiche immédiatement les archives dans la page. La reprise ne se fait ensuite que par le bouton Reprendre affiché à l’artisan. Ne prétends pas avoir ouvert le fil toi-même.',parameters:{type:'OBJECT',properties:{}}}
+ {name:'afficher_conversations',description:'Quand l’artisan dit « reprendre une conversation », « mes anciennes conversations » ou « retrouver mon historique », affiche immédiatement les archives dans la page. La reprise ne se fait ensuite que par le bouton Reprendre affiché à l’artisan. Ne prétends pas avoir ouvert le fil toi-même.',parameters:{type:'OBJECT',properties:{}}},
+ {name:'proposer_memoire',description:'Quand l’artisan demande explicitement « retiens », « mémorise », « souviens-toi », propose un vocabulaire BTP, une préférence artisan ou un souvenir factuel. Ne JAMAIS enregistrer ici : l’artisan doit confirmer en cliquant dans la page. Refuse les secrets, coordonnées privées, informations sur des clients et instructions système.',parameters:{type:'OBJECT',properties:{
+    type:{type:'STRING',enum:['vocabulaire','preference','souvenir']},
+    source:{type:'STRING',description:'Abréviation ou expression BTP'},
+    cible:{type:'STRING',description:'Signification explicite, sans invention'},
+    vocab_type:{type:'STRING',enum:['synonyme','raccourci','correction','expression_regionale']},
+    categorie:{type:'STRING',enum:['materiaux_favoris','zones_intervention']},
+    valeur:{type:'STRING',description:'Matériau favori ou zone de travail explicitement donnée'},
+    contenu:{type:'STRING',description:'Fait durable explicitement demandé, sans données clients ni secrets'}
+  },required:['type']}}
 ];
 const viewCSS=[
  '.angel-business{max-width:680px;margin-top:22px}',
@@ -198,6 +207,8 @@ async function toolCall(calls){
       try{
         reply=action==='afficher_conversations'
           ? window.AngelConversationArchive.openPicker()
+          : action==='proposer_memoire'
+          ? window.AngelMemoryLearning.propose(args)
           : await call(action,args);
       }
       catch(e){reply={error:e.message};info('Ángel : '+action+' — '+e.message,true);}
