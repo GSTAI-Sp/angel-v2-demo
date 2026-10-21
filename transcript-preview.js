@@ -3,7 +3,7 @@
 // cette interface comme une archive sauvegardée : migration RLS en attente.
 (() => {
   'use strict';
-  let history=null, partialUser='', partialAssistant='', turns=0, onFinal=null;
+  let history=null, partialUser='', partialAssistant='', turns=0, onFinal=null, onUserFinal=null;
   function join(a,b){
     const current=a.trim(), next=(typeof b==='string'?b:'').trim();
     if(!next)return current;
@@ -27,7 +27,12 @@
     history.append(row);
     turns+=1;
     history.scrollTop=history.scrollHeight;
-    if(emit && onFinal)onFinal({id:crypto.randomUUID(),speaker,body:body.trim(),timestamp:Date.now()});
+    if(emit){
+      const record={id:crypto.randomUUID(),speaker,body:body.trim(),timestamp:Date.now()};
+      // L'archivage reçoit TOUS les messages, et le détecteur ne reçoit que la parole utilisateur.
+      if(onFinal)onFinal(record);
+      if(speaker==='user' && onUserFinal)onUserFinal(record);
+    }
   }
   function finish(){
     if(partialUser)line('user',partialUser);
@@ -78,11 +83,12 @@
     document.getElementById('heard').textContent='—';document.getElementById('said').textContent='—';
   }
   function setFinalHandler(callback){onFinal=callback;}
+  function setFinalUserHandler(callback){onUserFinal=callback;}
   function reset(){
     partialUser='';partialAssistant='';turns=0;
     if(history)history.replaceChildren();
     document.getElementById('heard').textContent='—';
     document.getElementById('said').textContent='—';
   }
-  window.AngelTranscriptPreview={init,input,output,turnComplete,interrupted,close,reset,load,setFinalHandler};
+  window.AngelTranscriptPreview={init,input,output,turnComplete,interrupted,close,reset,load,setFinalHandler,setFinalUserHandler};
 })();
