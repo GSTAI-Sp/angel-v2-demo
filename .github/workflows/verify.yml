@@ -29,13 +29,20 @@ jobs:
           archives = Path("archive.js").read_text(encoding="utf8")
           memory = Path("memory.js").read_text(encoding="utf8")
           learning = Path("memory-learn.js").read_text(encoding="utf8")
+          intent = Path("memory-intent.js").read_text(encoding="utf8")
           for forbidden in ["hjrmkkybhhwfelmatcga", "GEMINI_API_KEY", "SUPABASE_SERVICE_ROLE_KEY", "sb_secret_", "AIza"]:
-              assert forbidden not in html and forbidden not in metier and forbidden not in preview and forbidden not in archives and forbidden not in memory and forbidden not in learning, "Référence interdite détectée"
+              assert forbidden not in html and forbidden not in metier and forbidden not in preview and forbidden not in archives and forbidden not in memory and forbidden not in learning and forbidden not in intent, "Référence interdite détectée"
           assert '<script src="./metier.js"></script>' in html
           assert '<script src="./transcript-preview.js"></script>' in html
           assert '<script src="./archive.js"></script>' in html
           assert '<script src="./memory.js"></script>' in html
           assert '<script src="./memory-learn.js"></script>' in html
+          assert '<script src="./memory-intent.js"></script>' in html
+          assert "setFinalUserHandler" in preview
+          assert "AngelMemoryIntent" in learning
+          assert "transcripts.setFinalUserHandler" in learning
+          assert "learning.init({baseUrl:BASE_URL" in html
+          assert "transcripts});" in html
           assert "AngelMemoryLearning.propose(args)" in metier
           assert "learning.init(" in html
           assert "confirmation:true" in learning
@@ -59,7 +66,7 @@ jobs:
           assert len(js) > 2500
           Path("/tmp/angel-v2-client.js").write_text(js, encoding="utf8")
           PY
-      - name: Vérifier les six scripts JavaScript
+      - name: Vérifier les sept scripts JavaScript et le détecteur vocal
         run: |
           node --check /tmp/angel-v2-client.js
           node --check metier.js
@@ -67,3 +74,5 @@ jobs:
           node --check archive.js
           node --check memory.js
           node --check memory-learn.js
+          node --check memory-intent.js
+          node memory-intent.test.cjs
