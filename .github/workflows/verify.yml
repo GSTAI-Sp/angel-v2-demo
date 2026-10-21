@@ -1,0 +1,33 @@
+name: Vérifier le client vocal public
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Syntaxe et isolation du frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extraire le JavaScript et contrôler les références
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          html = Path("index.html").read_text(encoding="utf8")
+          js = html.split("<script>", 1)[1].split("</script>", 1)[0]
+          assert "const BASE_URL=" in js
+          assert "BidiGenerateContentConstrained" in js
+          assert "angel-live-token" in js
+          assert "dchunxngtdbtgxbccmlb" in html
+          for forbidden in ["hjrmkkybhhwfelmatcga", "GEMINI_API_KEY", "SUPABASE_SERVICE_ROLE_KEY", "sb_secret_", "AIza"]:
+              assert forbidden not in html, "Référence interdite détectée"
+          assert len(js) > 2500
+          Path("/tmp/angel-v2-client.js").write_text(js, encoding="utf8")
+          PY
+      - name: Vérifier la syntaxe JavaScript
+        run: node --check /tmp/angel-v2-client.js
