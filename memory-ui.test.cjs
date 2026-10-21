@@ -59,4 +59,18 @@ const cancel=approval.children.find(x=>x.className==='actions').children[1];
 cancel.listeners.click();
 assert.equal(approval.hidden,true,'Cancel must dismiss proposal');
 assert.ok(banner.textContent.includes('aucune mémoire enregistrée'),'Cancel must not save');
-console.log('PASS: spoken memory proposal opens the panel, exposes button, no fake save, cancellation works.');
+// Regression: Gemini peut classer « réponses courtes » comme une préférence,
+// mais l'enum du profil V1 n'accepte que matériaux et zones.
+const general=win.AngelMemoryLearning.propose({
+  type:'preference',valeur:'Je préfère des réponses courtes pour les devis'
+});
+assert.equal(general.status,'confirmation_humaine_requise');
+assert.ok(summary.textContent.includes('Souvenir utile'));
+assert.ok(summary.textContent.includes('réponses courtes'));
+cancel.listeners.click();
+const contentField=win.AngelMemoryLearning.propose({
+  type:'preference',contenu:'Je préfère des réponses courtes pour les devis'
+});
+assert.equal(contentField.status,'confirmation_humaine_requise');
+assert.ok(summary.textContent.includes('réponses courtes'));
+console.log('PASS: voice panel, confirmation, no fake save, cancel, generic preferences routed to V1 long-term memory.');
