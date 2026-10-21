@@ -3,7 +3,7 @@
 // cette interface comme une archive sauvegardée : migration RLS en attente.
 (() => {
   'use strict';
-  let history=null, partialUser='', partialAssistant='', turns=0;
+  let history=null, partialUser='', partialAssistant='', turns=0, onFinal=null;
   function join(a,b){
     const current=a.trim(), next=(typeof b==='string'?b:'').trim();
     if(!next)return current;
@@ -15,7 +15,7 @@
     }
     return (current+(/^[,.;:!?]/.test(next)?'':' ')+next).slice(0,6000);
   }
-  function line(speaker,body) {
+  function line(speaker,body,emit=true) {
     if(!history||!body.trim())return;
     const row=document.createElement('div');
     row.className='history-line';
@@ -27,6 +27,7 @@
     history.append(row);
     turns+=1;
     history.scrollTop=history.scrollHeight;
+    if(emit && onFinal)onFinal({id:crypto.randomUUID(),speaker,body:body.trim(),timestamp:Date.now()});
   }
   function finish(){
     if(partialUser)line('user',partialUser);
@@ -57,7 +58,6 @@
     first.textContent='Les échanges s’afficheront ici au fur et à mesure.';
     first.className='history-empty';
     div.append(first);
-    const append=line;
     history=div;
     host.insertAdjacentElement('afterend',div);
     host.insertAdjacentElement('afterend',notice);
@@ -70,11 +70,19 @@
     finish();
   }
   function close(){turnComplete();}
+  function load(items){
+    if(!history)return;
+    history.replaceChildren();
+    for(const item of items||[]){if(item && (item.speaker==='user'||item.speaker==='assistant') && typeof item.body==='string')line(item.speaker,item.body,false);}
+    partialUser='';partialAssistant='';
+    document.getElementById('heard').textContent='—';document.getElementById('said').textContent='—';
+  }
+  function setFinalHandler(callback){onFinal=callback;}
   function reset(){
     partialUser='';partialAssistant='';turns=0;
     if(history)history.replaceChildren();
     document.getElementById('heard').textContent='—';
     document.getElementById('said').textContent='—';
   }
-  window.AngelTranscriptPreview={init,input,output,turnComplete,interrupted,close,reset};
+  window.AngelTranscriptPreview={init,input,output,turnComplete,interrupted,close,reset,load,setFinalHandler};
 })();
