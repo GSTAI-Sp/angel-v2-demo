@@ -31,6 +31,7 @@ const stop=new FakeElement('button');
 const win={};
 const context=vm.createContext({window:win,document:doc,console});
 vm.runInContext(fs.readFileSync('memory-intent.js','utf8'),context,{filename:'memory-intent.js'});
+vm.runInContext(fs.readFileSync('auto-memory.js','utf8'),context,{filename:'auto-memory.js'});
 vm.runInContext(fs.readFileSync('memory-learn.js','utf8'),context,{filename:'memory-learn.js'});
 let userFinalHandler=null;
 const transcripts={setFinalUserHandler(callback){userFinalHandler=callback}};
@@ -73,4 +74,28 @@ const contentField=win.AngelMemoryLearning.propose({
 });
 assert.equal(contentField.status,'confirmation_humaine_requise');
 assert.ok(summary.textContent.includes('réponses courtes'));
-console.log('PASS: voice panel, confirmation, no fake save, cancel, generic preferences routed to V1 long-term memory.');
+// L'option automatique est désactivée au démarrage.
+cancel.listeners.click();
+const optIn=doc.getElementById('angel-memory-auto-optin');
+assert.ok(optIn,'The opt-in must be visible');
+assert.equal(optIn.checked,false,'Auto-memory must start OFF');
+userFinalHandler({speaker:'user',body:'Pour mes devis, je préfère des réponses courtes.'});
+assert.equal(approval.hidden,true,'No automatic suggestion without consent');
+// L'artisan accepte la détection pour cette session.
+optIn.checked=true;optIn.listeners.change();
+userFinalHandler({speaker:'user',body:'Pour mes devis, je préfère des réponses courtes.'});
+assert.equal(approval.hidden,false,'Opt-in should suggest a non-sensitive preference');
+assert.ok(banner.textContent.includes('NON ENREGISTRÉE'),'An automatic suggestion is NEVER saved without click');
+cancel.listeners.click();
+// Ne jamais relancer une suggestion refusée dans la même session.
+userFinalHandler({speaker:'user',body:'Pour mes devis, je préfère des réponses courtes.'});
+assert.equal(approval.hidden,true,'Rejected suggestions should not nag');
+userFinalHandler({speaker:'user',body:'Le client Dupont veut du bois.'});
+assert.equal(approval.hidden,true,'Never suggest client information');
+optIn.checked=false;optIn.listeners.change();
+userFinalHandler({speaker:'user',body:'Je travaille surtout avec du pin.'});
+assert.equal(approval.hidden,true,'Opt-out must work immediately');
+// Une demande « retiens que » reste manuelle, même avec l'opt-in désactivé.
+userFinalHandler({speaker:'user',body:'Ángel, retiens que je préfère du bois pour mes terrasses.'});
+assert.equal(approval.hidden,false,'Explicit memory remains usable with automatic disabled');
+console.log('PASS: explicit voice and opt-in auto-suggestions, duplicate rejection, no client leak, confirmation required.');
