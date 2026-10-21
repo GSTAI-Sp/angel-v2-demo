@@ -75,8 +75,7 @@ function render(){
     try {
       await request({action:'update',kind:row.kind,id:row.id,
         updated_at:row.updated_at??null,value:updated,confirm_update:true});
-      note('✓ Mémoire corrigée sur Supabase TEST. Redémarre le micro pour actualiser Ángel.');
-      await refreshAfterWrite();
+      await refreshAfterWrite('✓ Mémoire corrigée sur Supabase TEST. Redémarre le micro pour actualiser Ángel.');
     }catch(e){
       rows=before;note('Correction non effectuée : '+e.message,true);
     }finally{busy=false;confirm.disabled=false;del.disabled=false;}
@@ -89,8 +88,7 @@ function render(){
     try {
       await request({action:'delete',kind:row.kind,id:row.id,
         updated_at:row.updated_at??null,confirm_delete:'SUPPRIMER'});
-      note('✓ Mémoire supprimée de Supabase TEST. Redémarre le micro pour actualiser Ángel.');
-      await refreshAfterWrite();
+      await refreshAfterWrite('✓ Mémoire supprimée de Supabase TEST. Redémarre le micro pour actualiser Ángel.');
     }catch(e){note('Suppression non effectuée : '+e.message,true);}
     finally{busy=false;del.disabled=false;edit.disabled=false;}
   });
@@ -98,7 +96,7 @@ function render(){
   list.append(item);
  }
 }
-async function refreshAfterWrite(){
+async function refreshAfterWrite(message){
  // La lecture des mémoires change sans redémarrer le navigateur.
  // Une session audio Gemini déjà ouverte conserve cependant son ancien contexte.
  let fail=null;
@@ -107,6 +105,7 @@ async function refreshAfterWrite(){
  try{await refresh(true);}
  catch(e){fail=fail||e;}
  if(fail)note('Écriture effectuée, mais actualisation incomplète : '+fail.message,true);
+ else note(message);
 }
 async function refresh(force=false){
  if((busy&&!force)||!getToken?.())return false;
