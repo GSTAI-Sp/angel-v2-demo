@@ -33,6 +33,11 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .log{border-top:1px solid #e2e9f2;margin-top:25px;padding-top:17px;display:grid;gap:12px}
 .transcript{font-size:14px;line-height:1.5;word-break:break-word;color:#364e69;min-height:26px}
 .transcript strong{color:#172b4b}
+.history-heading{margin-top:24px;font-size:15px;font-weight:800;color:#1b385c}
+.history-notice{font-size:12px;color:#64758b;line-height:1.5;margin:6px 0 9px}
+.transcript-history{border:1px solid #dce7f1;background:#f8fbfe;border-radius:10px;padding:13px;max-height:300px;overflow-y:auto;display:grid;gap:10px}
+.history-line{font-size:14px;line-height:1.55;border-bottom:1px solid #e4edf4;padding:4px 0 10px;overflow-wrap:anywhere}
+.history-line:last-child{border:0;padding-bottom:0}.history-line strong{color:#145ba6}.history-empty{color:#748296;font-size:13px;margin:0}
 .pill{font-size:11px;border:1px solid #cbdbea;border-radius:999px;color:#526d88;padding:5px 10px}
 .note{font-size:12px;line-height:1.65;color:#6b7c90;margin:22px 0 0;max-width:700px}
 footer{border-top:1px solid #e2e9f0;padding:21px 0;color:#7b8999;font-size:12px}
@@ -73,6 +78,7 @@ footer{border-top:1px solid #e2e9f0;padding:21px 0;color:#7b8999;font-size:12px}
 </main>
 <footer><div class="wrap">SpeedArti — Prototype isolé · Projet Supabase Ángel V2 · Aucun accès à SpeedArti en production</div></footer>
 <script src="./metier.js"></script>
+<script src="./transcript-preview.js"></script>
 <script>
 (() => {
 'use strict';
@@ -84,6 +90,7 @@ const WS_URL='wss://generativelanguage.googleapis.com/ws/google.ai.generativelan
 const MODEL='models/gemini-3.8-live';
 const $=id=>document.getElementById(id);
 const metier=window.AngelBusinessDemo;
+const transcripts=window.AngelTranscriptPreview;
 let jwt=null, socket=null,stream=null, inputCtx=null, outputCtx=null, source=null, processor=null, sink=null;
 let playback=[], nextPlayTime=0, starting=false, stopped=true, setupDone=false, sessionTimer=null, setupTimer=null;
 function setState(label, message, mode=''){
@@ -240,11 +247,11 @@ async function openLive(){
       }
       if(data.serverContent){
         const c=data.serverContent;
-        if(c.interrupted){clearPlayback();setState('Je t’écoute','Interruption reçue.','active')}
-        if(c.inputTranscription?.text)$('heard').textContent=c.inputTranscription.text;
-        if(c.outputTranscription?.text)$('said').textContent=c.outputTranscription.text;
+        if(c.interrupted){transcripts.interrupted();clearPlayback();setState('Je t’écoute','Interruption reçue.','active')}
+        if(c.inputTranscription?.text)transcripts.input(c.inputTranscription.text);
+        if(c.outputTranscription?.text)transcripts.output(c.outputTranscription.text);
         if(c.modelTurn?.parts){for(const part of c.modelTurn.parts)if(part.inlineData?.data)playAudio(part.inlineData.data)}
-        if(c.turnComplete)setState('Je t’écoute','Tu peux continuer la conversation.','active');
+        if(c.turnComplete){transcripts.turnComplete();setState('Je t’écoute','Tu peux continuer la conversation.','active');}
       }
     };
     ws.onerror=()=>{if(!stopped)setState('Erreur WebSocket','La connexion vocale Gemini rencontre une erreur réseau.','error')};
@@ -280,11 +287,12 @@ $('loginForm').addEventListener('submit',async event=>{
   finally{btn.disabled=false;btn.textContent='Se connecter'}
 });
 $('startBtn').addEventListener('click',()=>{void openLive()});
-$('stopBtn').addEventListener('click',()=>{stop();setState('Micro coupé','La conversation est arrêtée.')});
+$('stopBtn').addEventListener('click',()=>{transcripts.close();stop();setState('Micro coupé','La conversation est arrêtée.')});
 $('logoutBtn').addEventListener('click',()=>{
-  stop();jwt=null;metier.hide();$('voicePanel').hidden=true;$('loginPanel').hidden=false;
+  transcripts.reset();stop();jwt=null;metier.hide();$('voicePanel').hidden=true;$('loginPanel').hidden=false;
   setState('Micro coupé','La conversation est arrêtée.');
 });
+transcripts.init();
 metier.init({baseUrl:BASE_URL,publicKey:PUBLIC_KEY,getToken:()=>jwt,getSocket:()=>socket});
 window.addEventListener('pagehide',stop);
 })();
