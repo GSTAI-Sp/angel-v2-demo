@@ -147,7 +147,7 @@ async function initCapture(){
   // ScriptProcessor is a prototype compatibility fallback; AudioWorklet is preferred when supported.
   let workletStarted=false;
   if(inputCtx.audioWorklet && typeof AudioWorkletNode!=='undefined'){
-    const workletSource="class P extends AudioWorkletProcessor{process(inputs){const d=inputs[0]?.[0];if(d)this.port.postMessage(d.slice(0));return true;}}registerProcessor('angel-mic-pcm',P);";
+    const workletSource="class P extends AudioWorkletProcessor{constructor(){super();this.buffers=[];this.count=0;}process(inputs){const d=inputs[0]?.[0];if(d){this.buffers.push(new Float32Array(d));this.count+=d.length;if(this.count>=4096){const block=new Float32Array(this.count);let pos=0;for(const part of this.buffers){block.set(part,pos);pos+=part.length;}this.port.postMessage(block,[block.buffer]);this.buffers=[];this.count=0;}}return true;}}registerProcessor('angel-mic-pcm',P);";
     const blobUrl=URL.createObjectURL(new Blob([workletSource],{type:'text/javascript'}));
     try{
       await inputCtx.audioWorklet.addModule(blobUrl);
