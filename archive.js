@@ -187,7 +187,7 @@
       }
       ready=true;
       await refresh();
-      status('Conversation synchronisée. Seules les transcriptions finales sont sauvegardées.');
+      status('Conversation « '+current.title+' » chargée. Clique sur « Démarrer la conversation » pour poursuivre à l’oral.');
       if(newButton)newButton.disabled=false;
       return true;
     }catch(e){
@@ -207,11 +207,12 @@
       if(conversationId){
         const resumed=await change(conversationId,{status:'active',archived_at:null});
         await showMessageThread(resumed);
-        status('Ancien fil repris. Redémarre le micro pour poursuivre.');
+        status('Conversation « '+resumed.title+' » reprise. Tu peux poursuivre avec le bouton « Démarrer la conversation ».');
+        document.getElementById('voicePanel').scrollIntoView({behavior:'smooth',block:'start'});
       }else{
         current=await create();historyCache=[];transcript.load([]);
         titleEl.textContent=current.title;
-        status('Nouvelle conversation créée : la précédente est archivée.');
+        status('Nouvelle conversation créée : la précédente est archivée. Elle est visible dans la liste ci-dessous.');
       }
       await refresh();
     }catch(e){status('Impossible de changer de conversation : '+e.message,true);}
@@ -229,7 +230,7 @@
     publicKey=config.publicKey;getToken=config.getToken;onSwitch=config.onSwitch;transcript=config.transcript;
     if(!transcript?.setFinalHandler||!transcript?.load)throw new Error('Gestion des sous-titres manquante.');
     const s=document.createElement('style');
-    s.textContent='.archive-row{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid #e3eaf2;padding:8px 0}.archive-row span{font-size:13px;overflow-wrap:anywhere}.archive-row button{padding:8px 12px;font-size:12px}.archive-list{margin-top:12px;display:grid;gap:5px}.archive-status{font-size:13px;color:#496781;margin:10px 0}@media(max-width:580px){.archive-row button{width:auto}}';
+    s.textContent='.archive-row{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid #e3eaf2;padding:8px 0;flex-wrap:wrap}.archive-row span{font-size:13px;overflow-wrap:anywhere;flex:1;min-width:135px}.archive-row button{padding:8px 12px;font-size:12px}.archive-list{margin-top:12px;display:grid;gap:5px}.archive-status{font-size:13px;color:#496781;margin:10px 0}.archive-count{font-size:12px;font-weight:700;color:#2379c5}.archive-list .primary{white-space:normal}@media(max-width:580px){.archive-row button{width:auto}.archive-row{gap:8px}.archive-row .primary{min-width:160px}}';
     document.head.append(s);
     panel=element('section',null,'card');panel.id='angel-archive-panel';panel.hidden=true;
     const heading=element('h2','Mes conversations (TEST)');
