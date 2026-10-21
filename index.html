@@ -1,45 +1,248 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <meta name="robots" content="noindex,nofollow"/>
-  <meta name="theme-color" content="#ffffff"/>
-  <title>Ángel Live — Démonstration SpeedArti</title>
-  <style>
-    :root { color-scheme:light; font-family: system-ui,-apple-system,Segoe UI,Arial,sans-serif; color:#172b4c; background:white; }
-    * { box-sizing:border-box; }
-    body { margin:0; min-height:100vh; background:linear-gradient(155deg,#eff7ff 0%,#fff 45%); }
-    header { background:white; border-bottom:1px solid #e6ecf2; }
-    .wrap { width:min(1020px,calc(100% - 40px)); margin:auto; }
-    header .wrap { display:flex; align-items:center; justify-content:space-between; padding:18px 0; }
-    .logo { color:#06439b; font-size:21px; font-weight:800; letter-spacing:-.06em; }
-    .small { color:#61718a; font-size:13px; }
-    main { padding: clamp(50px,8vw,110px) 0; }
-    .eyebrow { color:#0a5cc2; letter-spacing:.10em; font-size:12px; font-weight:700; text-transform:uppercase; }
-    h1 { font-size:clamp(38px,5.6vw,62px); line-height:1.09; margin:15px 0 19px; letter-spacing:-.045em; max-width:770px; }
-    .lede { color:#485e79; max-width:650px; font-size:18px; line-height:1.65; margin:0; }
-    .panel { margin-top:46px; border:1px solid #dbe6f2; border-radius:14px; background:white; padding:30px; max-width:700px; box-shadow:0 10px 35px #1236680d; }
-    .line { display:flex; align-items:flex-start; gap:14px; }
-    .dot { display:inline-block; flex-shrink:0; height:10px; width:10px; border-radius:50%; background:#e0a23c; margin-top:7px; }
-    .panel h2 { font-size:19px; letter-spacing:-.01em; margin:0 0 9px; }
-    .panel p { font-size:15px; color:#526780; line-height:1.6; margin:0; }
-    .facts { display:flex; gap:12px; flex-wrap:wrap; margin-top:22px; }
-    .fact { padding:9px 12px; background:#f3f7fb; color:#3b526c; font-size:13px; border-radius:6px; }
-    footer { border-top:1px solid #e7edf3; padding:24px 0; color:#6b7a8e; font-size:12px; }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#ffffff"/>
+<meta name="robots" content="noindex,nofollow"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://dchunxngtdbtgxbccmlb.supabase.co wss://generativelanguage.googleapis.com; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline' blob:; media-src blob:; base-uri 'self'; object-src 'none'; form-action 'none'"/>
+<title>Ángel Live · Démo SpeedArti</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172b4b;background:#fff}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:linear-gradient(155deg,#f0f7ff 0,#fff 44%,#fff 100%)}
+header{border-bottom:1px solid #e3eaf2;background:#fff} .wrap{width:min(900px,calc(100% - 36px));margin:auto}
+.head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px 0}
+.brand{font-size:23px;font-weight:850;color:#0759b3;letter-spacing:-.055em}
+.brand span{color:#aab7c5;font-weight:400}.side{font-size:12px;color:#64758b}
+main{padding:48px 0 70px} .eyebrow{font-size:11px;font-weight:750;text-transform:uppercase;letter-spacing:.12em;color:#0874d1}
+h1{font-size:clamp(34px,5.5vw,56px);letter-spacing:-.055em;line-height:1.1;margin:12px 0 14px}
+.intro{color:#5b6d84;line-height:1.6;max-width:650px;font-size:16px}
+.card{margin-top:34px;background:#fff;border:1px solid #dee7f1;border-radius:15px;box-shadow:0 15px 50px #17427610;padding:clamp(20px,5vw,34px);max-width:680px}
+h2{font-size:20px;letter-spacing:-.02em;margin:0 0 7px}.muted{color:#60718a;font-size:14px;line-height:1.6}
+label{font-size:13px;display:block;font-weight:700;margin:18px 0 7px}
+input{border:1px solid #cbd6e5;border-radius:8px;padding:13px 12px;width:100%;background:#fff;color:#152a46;font-size:16px}
+input:focus,button:focus-visible{outline:3px solid #91c4fc;outline-offset:2px}
+button{font:inherit;border:0;cursor:pointer;font-weight:700;border-radius:9px;padding:14px 20px}
+button:disabled{opacity:.5;cursor:not-allowed}
+.primary{background:#0769d3;color:#fff}.secondary{background:white;border:1px solid #cbd8e8;color:#1c3b64}
+.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
+.status{display:flex;gap:12px;align-items:center;background:#f5f9fc;border:1px solid #e8eef5;border-radius:9px;padding:15px;margin-top:23px;font-size:14px}
+.dot{width:10px;height:10px;border-radius:50%;background:#b1becd;flex:none}
+.dot.active{background:#18a46b;box-shadow:0 0 0 5px #18a46b1a}.dot.speaking{background:#147de0}.dot.error{background:#e04444}
+#message{color:#38506d;margin-top:12px;line-height:1.55;font-size:14px;white-space:pre-line}
+.log{border-top:1px solid #e2e9f2;margin-top:25px;padding-top:17px;display:grid;gap:12px}
+.transcript{font-size:14px;line-height:1.5;word-break:break-word;color:#364e69;min-height:26px}
+.transcript strong{color:#172b4b}
+.pill{font-size:11px;border:1px solid #cbdbea;border-radius:999px;color:#526d88;padding:5px 10px}
+.note{font-size:12px;line-height:1.65;color:#6b7c90;margin:22px 0 0;max-width:700px}
+footer{border-top:1px solid #e2e9f0;padding:21px 0;color:#7b8999;font-size:12px}
+[hidden]{display:none!important}
+@media (max-width:580px){main{padding-top:31px}button{width:100%}.head{align-items:flex-start}.side{text-align:right}}
+</style>
 </head>
 <body>
-  <header><div class="wrap"><div class="logo">SpeedArti <span style="font-weight:400;color:#9aa8ba">/</span> Ángel</div><div class="small">Environnement de démonstration</div></div></header>
-  <main class="wrap">
-    <div class="eyebrow">Assistant vocal pour les artisans</div>
-    <h1>Ángel Live.<br>Une conversation plus naturelle.</h1>
-    <p class="lede">Une nouvelle expérience vocale se prépare : échanger, interrompre et reprendre une conversation naturellement. La démo sera ouverte après validation des tests techniques et de sécurité.</p>
-    <section class="panel">
-      <div class="line"><span class="dot"></span><div><h2>Démo en préparation</h2>
-      <p>La conversation avec Gemini Live n'est pas encore activée sur ce site. Aucun test vocal ni accès à des données clients n'est possible pour le moment.</p></div></div>
-      <div class="facts"><span class="fact">Données fictives uniquement</span><span class="fact">Environnement indépendant</span><span class="fact">Accès de test contrôlé</span></div>
-    </section>
-  </main>
-  <footer><div class="wrap">SpeedArti — Prototype Ángel V2. Aucun service opérationnel n'est annoncé sur cette page.</div></footer>
+<header><div class="wrap head"><div class="brand">SpeedArti <span>/</span> Ángel</div><div class="side">Démo vocale privée<br>sur infrastructure de test</div></div></header>
+<main class="wrap">
+<div class="eyebrow">Prototype · Ángel V2</div>
+<h1>Parler naturellement<br>avec Ángel Live.</h1>
+<p class="intro">Teste la conversation vocale continue avec Gemini 3.8 Live, sans toucher à tes clients, devis ou chantiers réels.</p>
+<section class="card" id="loginPanel">
+<h2>Connexion administrateur</h2>
+<p class="muted">Utilise l’adresse e-mail et le mot de passe du compte fictif créé dans Supabase Ángel V2. Cet écran n’envoie tes identifiants qu’au service d’authentification Supabase de test.</p>
+<form id="loginForm">
+<label for="email">E-mail du compte de test</label><input id="email" type="email" autocomplete="username" required placeholder="exemple@domaine.fr"/>
+<label for="password">Mot de passe</label><input id="password" type="password" autocomplete="current-password" required/>
+<div class="actions"><button class="primary" id="loginBtn" type="submit">Se connecter</button></div>
+</form>
+<div id="loginError" role="alert" class="muted" aria-live="polite"></div>
+</section>
+<section class="card" id="voicePanel" hidden>
+<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
+<div><h2>Ángel Live <span class="pill">Bêta admin</span></h2><p class="muted" style="margin:6px 0">Session vocale sans outil métier</p></div>
+<button class="secondary" id="logoutBtn" type="button">Déconnexion</button>
+</div>
+<div class="status" aria-live="polite"><span id="dot" class="dot"></span><strong id="status">Micro coupé</strong></div>
+<div id="message" role="status">Appuie sur « Démarrer » pour autoriser le microphone et ouvrir une session vocale.</div>
+<div class="actions">
+<button id="startBtn" class="primary" type="button">🎙 Démarrer la conversation</button>
+<button id="stopBtn" class="secondary" type="button" disabled>■ Arrêter le micro</button>
+</div>
+<div class="log"><div class="transcript"><strong>Toi :</strong> <span id="heard">—</span></div><div class="transcript"><strong>Ángel :</strong> <span id="said">—</span></div></div>
+</section>
+<p class="note">Essais administrateurs uniquement. Les données utilisées doivent rester fictives. Aucune création de devis ni action client n’est disponible dans cette version. L’audio fonctionne uniquement pendant la session ouverte, sous réserve des limites du navigateur et de la connexion.</p>
+</main>
+<footer><div class="wrap">SpeedArti — Prototype isolé · Projet Supabase Ángel V2 · Aucun accès à SpeedArti en production</div></footer>
+<script>
+(() => {
+'use strict';
+const REF='dchunxngtdbtgxbccmlb';
+const URL='https://'+REF+'.supabase.co';
+const PUBLIC_KEY='sb_publishable_0Y7z5OGhZOkRyK5sattmyA_ul2BNv7v'; // Supabase publishable key (public client identifier, NOT a secret)
+const TOKEN_ENDPOINT=URL+'/functions/v1/angel-live-token';
+const WS_URL='wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained';
+const MODEL='models/gemini-3.8-live';
+const $=id=>document.getElementById(id);
+let jwt=null, socket=null,stream=null, inputCtx=null, outputCtx=null, source=null, processor=null, sink=null;
+let playback=[], nextPlayTime=0, starting=false, stopped=true, setupDone=false, sessionTimer=null;
+function setState(label, message, mode=''){
+  $('status').textContent=label;$('message').textContent=message;
+  $('dot').className='dot '+mode;
+}
+function clearPlayback(){
+  playback.forEach(x=>{try{x.stop()}catch(_){}}); playback=[];nextPlayTime=0;
+}
+function stop(){
+  stopped=true;setupDone=false;
+  if(sessionTimer){clearTimeout(sessionTimer);sessionTimer=null}
+  if(socket){const ws=socket;socket=null;try{ws.close(1000,'closed')}catch(_){}}
+  if(processor){try{processor.disconnect();processor.onaudioprocess=null;processor.port?.close()}catch(_){} processor=null}
+  if(source){try{source.disconnect()}catch(_){}source=null}
+  if(sink){try{sink.disconnect()}catch(_){}sink=null}
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
+  clearPlayback();
+  if(inputCtx){void inputCtx.close().catch(()=>{});inputCtx=null}
+  if(outputCtx){void outputCtx.close().catch(()=>{});outputCtx=null}
+  $('startBtn').disabled=false;$('stopBtn').disabled=true;starting=false;
+}
+function encodePCM(samples,sampleRate){
+  const ratio=sampleRate/16000, n=Math.floor(samples.length/ratio);
+  const bytes=new Uint8Array(n*2), view=new DataView(bytes.buffer);
+  for(let i=0;i<n;i++){
+    const a=Math.floor(i*ratio),b=Math.min(samples.length,Math.max(a+1,Math.floor((i+1)*ratio)));
+    let avg=0;for(let j=a;j<b;j++)avg+=samples[j];
+    avg=Math.max(-1,Math.min(1,avg/(b-a)));
+    view.setInt16(i*2,avg<0?avg*32768:avg*32767,true);
+  }
+  let str='';for(let i=0;i<bytes.length;i++)str+=String.fromCharCode(bytes[i]);
+  return btoa(str);
+}
+function decodePCM(b64){
+  const s=atob(b64),buf=new ArrayBuffer(s.length),view=new DataView(buf);
+  for(let i=0;i<s.length;i++)view.setUint8(i,s.charCodeAt(i));
+  const out=new Float32Array(Math.floor(s.length/2));
+  for(let i=0;i<out.length;i++)out[i]=view.getInt16(i*2,true)/32768;
+  return out;
+}
+function playAudio(b64){
+  if(!outputCtx||stopped)return;
+  const sample=decodePCM(b64);
+  if(!sample.length)return;
+  const ctx=outputCtx, buffer=ctx.createBuffer(1,sample.length,24000);
+  buffer.copyToChannel(sample,0);
+  const node=ctx.createBufferSource();node.buffer=buffer;node.connect(ctx.destination);
+  const at=Math.max(ctx.currentTime+.03,nextPlayTime);node.start(at);
+  nextPlayTime=at+buffer.duration; playback.push(node);
+  node.onended=()=>{playback=playback.filter(x=>x!==node)};
+  setState('Ángel parle','Tu peux l’interrompre à tout moment.','speaking');
+}
+function sendPCM(data,sampleRate){
+  if(stopped||!setupDone||!socket||socket.readyState!==WebSocket.OPEN||socket.bufferedAmount>180000)return;
+  socket.send(JSON.stringify({realtimeInput:{audio:{data:encodePCM(data,sampleRate),mimeType:'audio/pcm;rate=16000'}}}));
+}
+async function initCapture(){
+  inputCtx=new AudioContext();
+  source=inputCtx.createMediaStreamSource(stream);
+  sink=inputCtx.createGain();sink.gain.value=0;
+  const rate=inputCtx.sampleRate;
+  // ScriptProcessor is a prototype compatibility fallback; AudioWorklet is preferred when supported.
+  let workletStarted=false;
+  if(inputCtx.audioWorklet && typeof AudioWorkletNode!=='undefined'){
+    const workletSource="class P extends AudioWorkletProcessor{process(inputs){const d=inputs[0]?.[0];if(d)this.port.postMessage(d.slice(0));return true;}}registerProcessor('angel-mic-pcm',P);";
+    const blobUrl=URL.createObjectURL(new Blob([workletSource],{type:'text/javascript'}));
+    try{
+      await inputCtx.audioWorklet.addModule(blobUrl);
+      processor=new AudioWorkletNode(inputCtx,'angel-mic-pcm');
+      processor.port.onmessage=event=>sendPCM(event.data,rate);
+      workletStarted=true;
+    }catch(e){console.warn('AudioWorklet non disponible, mode compatibilité.')}
+    finally{URL.revokeObjectURL(blobUrl)}
+  }
+  if(!workletStarted){
+    processor=inputCtx.createScriptProcessor(4096,1,1);
+    processor.onaudioprocess=e=>sendPCM(e.inputBuffer.getChannelData(0),rate);
+  }
+  source.connect(processor);processor.connect(sink);sink.connect(inputCtx.destination);
+  await inputCtx.resume();
+}
+async function openLive(){
+  if(starting||socket||!jwt)return;
+  starting=true;stopped=false;
+  $('startBtn').disabled=true;$('stopBtn').disabled=false;
+  $('heard').textContent='—';$('said').textContent='—';
+  setState('Connexion en cours','Autorisation du microphone et ouverture de la session Live…');
+  try{
+    if(!window.isSecureContext)throw new Error('Une adresse HTTPS est nécessaire pour le microphone.');
+    stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+    if(stopped)return;
+    const res=await fetch(TOKEN_ENDPOINT,{method:'POST',headers:{'Authorization':'Bearer '+jwt,'apikey':PUBLIC_KEY,'Content-Type':'application/json'},body:'{}',cache:'no-store'});
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok||typeof data.token!=='string')throw new Error(data.error||'Impossible de créer la session : '+res.status);
+    if(stopped)return;
+    outputCtx=new AudioContext({sampleRate:24000});
+    await outputCtx.resume();
+    await initCapture();
+    const ws=new WebSocket(WS_URL+'?access_token='+encodeURIComponent(data.token));
+    socket=ws;
+    ws.onopen=()=>{
+      if(stopped){ws.close();return}
+      ws.send(JSON.stringify({setup:{
+        model:MODEL,
+        generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Aoede'}}}},
+        sessionResumption:{},
+        inputAudioTranscription:{},outputAudioTranscription:{},
+        systemInstruction:{parts:[{text:"Tu es Ángel, l'assistante vocale française des artisans. Tu participes à une démonstration : ne prétends jamais consulter de vrais clients ou créer des documents. Réponds naturellement, simplement et brièvement en français."}]}
+      }}));
+      setState('Initialisation','Gemini Live se prépare à écouter…');
+    };
+    ws.onmessage=e=>{
+      let data;try{data=JSON.parse(e.data)}catch(_){return}
+      if(data.setupComplete){setupDone=true;setState('Je t’écoute','Parle normalement : tu peux interrompre Ángel.','active');return}
+      if(data.serverContent){
+        const c=data.serverContent;
+        if(c.interrupted){clearPlayback();setState('Je t’écoute','Interruption reçue.','active')}
+        if(c.inputTranscription?.text)$('heard').textContent=c.inputTranscription.text;
+        if(c.outputTranscription?.text)$('said').textContent=c.outputTranscription.text;
+        if(c.modelTurn?.parts){for(const part of c.modelTurn.parts)if(part.inlineData?.data)playAudio(part.inlineData.data)}
+        if(c.turnComplete)setState('Je t’écoute','Tu peux continuer la conversation.','active');
+      }
+    };
+    ws.onerror=()=>{if(!stopped)setState('Erreur réseau','Connexion Gemini interrompue, arrête et réessaie.','error')};
+    ws.onclose=e=>{
+      if(stopped)return;
+      stop();
+      setState('Session fermée','La session s’est terminée (code '+e.code+'). Relance une nouvelle session.','error');
+    };
+    // Limite locale : pas de session de test ouverte indéfiniment.
+    sessionTimer=setTimeout(()=>{stop();setState('Limite atteinte','Session de test de 10 minutes terminée. Tu peux en démarrer une nouvelle.')},10*60*1000);
+    starting=false;
+  }catch(err){
+    stop();setState('Impossible de démarrer',err?.message||'Erreur inconnue.','error');
+  }
+}
+$('loginForm').addEventListener('submit',async event=>{
+  event.preventDefault();$('loginError').textContent='';
+  const btn=$('loginBtn');btn.disabled=true;btn.textContent='Connexion…';
+  try{
+    const email=$('email').value.trim(), password=$('password').value;
+    const res=await fetch(URL+'/auth/v1/token?grant_type=password',{
+      method:'POST',headers:{'apikey':PUBLIC_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({email,password}),cache:'no-store'
+    });
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok||typeof data.access_token!=='string')throw new Error('Identifiants invalides ou compte non confirmé.');
+    jwt=data.access_token;
+    $('password').value='';
+    $('loginPanel').hidden=true;$('voicePanel').hidden=false;
+  }catch(err){$('loginError').textContent=err.message||'Erreur de connexion.'}
+  finally{btn.disabled=false;btn.textContent='Se connecter'}
+});
+$('startBtn').addEventListener('click',()=>{void openLive()});
+$('stopBtn').addEventListener('click',()=>{stop();setState('Micro coupé','La conversation est arrêtée.')});
+$('logoutBtn').addEventListener('click',()=>{
+  stop();jwt=null;$('voicePanel').hidden=true;$('loginPanel').hidden=false;
+  setState('Micro coupé','La conversation est arrêtée.');
+});
+window.addEventListener('pagehide',stop);
+})();
+</script>
 </body></html>
