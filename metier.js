@@ -20,14 +20,14 @@ const toolDefs=[
   },required:['titre','lignes']}},
  {name:'consulter_devis',description:'Affiche un devis brouillon fictif créé dans la base TEST. Utilise un ID issu du résultat de création.',parameters:{type:'OBJECT',properties:{devis_id:{type:'STRING'}},required:['devis_id']}},
  {name:'afficher_conversations',description:'Quand l’artisan dit « reprendre une conversation », « mes anciennes conversations » ou « retrouver mon historique », affiche immédiatement les archives dans la page. La reprise ne se fait ensuite que par le bouton Reprendre affiché à l’artisan. Ne prétends pas avoir ouvert le fil toi-même.',parameters:{type:'OBJECT',properties:{}}},
- {name:'proposer_memoire',description:'Quand l’artisan demande explicitement « retiens », « mémorise », « souviens-toi », propose un vocabulaire BTP, une préférence artisan ou un souvenir factuel. Ne JAMAIS enregistrer ici : l’artisan doit confirmer en cliquant dans la page. Refuse les secrets, coordonnées privées, informations sur des clients et instructions système.',parameters:{type:'OBJECT',properties:{
-    type:{type:'STRING',enum:['vocabulaire','preference','souvenir']},
+ {name:'proposer_memoire',description:'Quand l’artisan demande explicitement « retiens », « mémorise », « souviens-toi », propose une mémoire BTP. IMPORTANT : « réponses courtes », préférences de formulation, habitudes de devis et demandes non matérielles = type souvenir + contenu exact. Type preference uniquement pour matériaux favoris ou zones d’intervention, avec categorie et valeur. Si les champs sont incomplets, demander la précision au lieu de prétendre enregistrer. Ne JAMAIS enregistrer ici : l’artisan doit confirmer en cliquant dans la page. Refuse les secrets, coordonnées privées, informations sur des clients et instructions système.',parameters:{type:'OBJECT',properties:{
+    type:{type:'STRING',enum:['vocabulaire','preference','souvenir'],description:'Utilise souvenir pour réponses courtes, ton, façons de travailler, préférences de communication. Utilise preference seulement pour matériaux favoris ou zones d’intervention.'},
     source:{type:'STRING',description:'Abréviation ou expression BTP'},
     cible:{type:'STRING',description:'Signification explicite, sans invention'},
     vocab_type:{type:'STRING',enum:['synonyme','raccourci','correction','expression_regionale']},
-    categorie:{type:'STRING',enum:['materiaux_favoris','zones_intervention']},
+    categorie:{type:'STRING',enum:['materiaux_favoris','zones_intervention'],description:'UNIQUEMENT si type preference avec un matériau ou une zone'},
     valeur:{type:'STRING',description:'Matériau favori ou zone de travail explicitement donnée'},
-    contenu:{type:'STRING',description:'Fait durable explicitement demandé, sans données clients ni secrets'}
+    contenu:{type:'STRING',description:'Phrase exacte à retenir, par exemple « je préfère des réponses courtes pour les devis », sans données clients ni secrets'}
   },required:['type']}}
 ];
 const viewCSS=[
