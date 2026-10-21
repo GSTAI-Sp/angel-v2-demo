@@ -84,6 +84,7 @@ footer{border-top:1px solid #e2e9f0;padding:21px 0;color:#7b8999;font-size:12px}
 <script src="./memory-intent.js"></script>
 <script src="./auto-memory.js"></script>
 <script src="./memory-learn.js"></script>
+<script src="./memory-manager.js"></script>
 <script>
 (() => {
 'use strict';
@@ -99,6 +100,7 @@ const transcripts=window.AngelTranscriptPreview;
 const archives=window.AngelConversationArchive;
 const memories=window.AngelLiveMemories;
 const learning=window.AngelMemoryLearning;
+const manager=window.AngelMemoryManager;
 let jwt=null, socket=null,stream=null, inputCtx=null, outputCtx=null, source=null, processor=null, sink=null;
 let playback=[], nextPlayTime=0, starting=false, stopped=true, setupDone=false, sessionTimer=null, setupTimer=null;
 function setState(label, message, mode=''){
@@ -297,7 +299,7 @@ $('loginForm').addEventListener('submit',async event=>{
     $('startBtn').disabled=true;
     void metier.show();
     const archiveReady=await archives.show();
-    if(archiveReady){await memories.refresh();learning.show();}
+    if(archiveReady){await memories.refresh();learning.show();await manager.show();}
     $('startBtn').disabled=!archiveReady;
     if(!archiveReady)setState('Archives indisponibles','Sécurisation des conversations non disponible. Le micro reste coupé pour éviter toute perte.', 'error');
   }catch(err){$('loginError').textContent=err.message||'Erreur de connexion.'}
@@ -308,7 +310,7 @@ $('stopBtn').addEventListener('click',()=>{stop();setState('Micro coupé','La co
 $('logoutBtn').addEventListener('click',async()=>{
   stop();
   if(!await archives.logoutAllowed())return;
-  learning.hide();archives.hide();memories.clear();transcripts.reset();jwt=null;metier.hide();
+  manager.hide();learning.hide();archives.hide();memories.clear();transcripts.reset();jwt=null;metier.hide();
   $('voicePanel').hidden=true;$('loginPanel').hidden=false;
   setState('Micro coupé','La conversation est arrêtée.');
 });
@@ -316,7 +318,8 @@ transcripts.init();
 archives.init({baseUrl:BASE_URL,publicKey:PUBLIC_KEY,getToken:()=>jwt,
   transcript:transcripts,onSwitch:()=>{stop();setState('Micro coupé','Ouvre une session vocale pour poursuivre.');}});
 memories.init({baseUrl:BASE_URL,publicKey:PUBLIC_KEY,getToken:()=>jwt});
-learning.init({baseUrl:BASE_URL,publicKey:PUBLIC_KEY,getToken:()=>jwt,refresh:()=>memories.refresh(),transcripts});
+learning.init({baseUrl:BASE_URL,publicKey:PUBLIC_KEY,getToken:()=>jwt,refresh:()=>memories.refresh(),transcripts,onSaved:()=>manager.refresh()});
+manager.init({baseUrl:BASE_URL,publicKey:PUBLIC_KEY,getToken:()=>jwt,onChanged:()=>memories.refresh()});
 metier.init({baseUrl:BASE_URL,publicKey:PUBLIC_KEY,getToken:()=>jwt,getSocket:()=>socket});
 window.addEventListener('pagehide',stop);
 })();
