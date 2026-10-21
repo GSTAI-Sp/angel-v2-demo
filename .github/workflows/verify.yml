@@ -76,3 +76,4 @@ jobs:
           node --check memory-learn.js
           node --check memory-intent.js
           node memory-intent.test.cjs
+          node memory-ui.test.cjs
