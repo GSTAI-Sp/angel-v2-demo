@@ -176,7 +176,7 @@ async function openLive(){
     if(stopped)return;
     const res=await fetch(TOKEN_ENDPOINT,{method:'POST',headers:{'Authorization':'Bearer '+jwt,'apikey':PUBLIC_KEY,'Content-Type':'application/json'},body:'{}',cache:'no-store'});
     const data=await res.json().catch(()=>({}));
-    if(!res.ok||typeof data.token!=='string')throw new Error(data.error||'Impossible de créer la session : '+res.status);
+    if(!res.ok||typeof data.token!=='string'){const diagnostic=data.provider_http_status ? ' (Google HTTP '+data.provider_http_status+' / '+(data.provider_error_category||'ERREUR')+' / '+(data.provider_error_hint||'NON_PRÉCISÉ')+')' : '';throw new Error((data.error||'Impossible de créer la session : '+res.status)+diagnostic)}
     if(stopped)return;
     outputCtx=new AudioContext({sampleRate:24000});
     await outputCtx.resume();
