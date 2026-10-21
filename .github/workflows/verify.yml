@@ -39,6 +39,12 @@ jobs:
           assert "const archiveReady=await archives.show()" in html
           assert "if(!archives.isReady())" in html
           assert "resolution=ignore-duplicates" in archives
+          assert "Reprendre la dernière conversation" in archives
+          assert "Reprendre cette conversation" in archives
+          assert "angel-open-archives" in archives
+          assert "details.open=true" in archives
+          assert "afficher_conversations" in metier
+          assert "openPicker()" in metier
           assert 'transcripts.turnComplete()' in html
           assert 'tools:[{functionDeclarations:metier.toolDefs}]' in html
           assert 'metier.toolCall(data.toolCall.functionCalls)' in html
