@@ -2,10 +2,10 @@
 // Jamais de secrets serveur ici, aucun accès à SpeedArti production.
 (() => {
 'use strict';
-const allowed=new Set(['rechercher_client','rechercher_chantier','rechercher_catalogue','preparer_devis','consulter_devis','afficher_conversations','proposer_memoire','consulter_factures','consulter_rendez_vous']);
+const allowed=new Set(['rechercher_client','rechercher_chantier','rechercher_catalogue','preparer_devis','consulter_devis','afficher_conversations','proposer_memoire','consulter_factures','consulter_rendez_vous','rechercher_devis','executer_plan_lecture','preparer_rendez_vous','preparer_facture','consulter_briefing']);
 const toolDefs=[
  {name:'rechercher_client',description:'Recherche un client fictif SpeedArti. Sans nom, liste les clients. Utilise ce résultat pour identifier un client avant un devis.',parameters:{type:'OBJECT',properties:{nom:{type:'STRING',description:'Nom du client demandé (facultatif)'}}}},
- {name:'rechercher_chantier',description:'Consulte la liste des chantiers fictifs dans SpeedArti TEST.',parameters:{type:'OBJECT',properties:{}}},
+ {name:'rechercher_chantier',description:'Consulte les chantiers fictifs, éventuellement filtrés par nom.',parameters:{type:'OBJECT',properties:{nom:{type:'STRING'}}}},
  {name:'rechercher_catalogue',description:'Recherche des articles dans le catalogue de test, avec leurs vrais prix de test. Si aucun article n’est présent, demander au client de donner les prix.',parameters:{type:'OBJECT',properties:{query:{type:'STRING',description:'Expression à chercher (facultatif)'}}}},
  {name:'preparer_devis',description:'Prépare le devis pour un client fictif. Ne l’enregistre pas. Demande les données manquantes, notamment les prix et taux TVA; n’en invente aucun. Une confirmation visible dans la page est indispensable.',parameters:{type:'OBJECT',properties:{
     client_nom:{type:'STRING',description:'Nom du client fictif trouvé, éventuellement partiel'},
@@ -20,12 +20,21 @@ const toolDefs=[
   },required:['titre','lignes']}},
  {name:'consulter_devis',description:'Affiche un devis brouillon fictif créé dans la base TEST. Utilise un ID issu du résultat de création.',parameters:{type:'OBJECT',properties:{devis_id:{type:'STRING'}},required:['devis_id']}},
  {name:'consulter_factures',description:'Consulte UNIQUEMENT les factures du compte SpeedArti TEST en lecture seule : montants et soldes de la base sans les inventer. Pour impayés et factures à payer, filtre en_attente. Pour factures échues, filtre en_retard. Pour échéances cette semaine, filtre echeances_semaine. Aucune émission, relance, modification ou envoi.',parameters:{type:'OBJECT',properties:{
-    filtre:{type:'STRING',enum:['toutes','en_attente','en_retard','echeances_semaine'],description:'Type de consultation demandé. Utiliser en_attente pour impayés, en_retard pour échues.'}
+    filtre:{type:'STRING',enum:['toutes','en_attente','en_retard','echeances_semaine'],description:'Type de consultation demandé. Utiliser en_attente pour impayés, en_retard pour échues.'},
+    recherche:{type:'STRING',description:'Titre ou numéro partiel de facture'},
+    montant_min:{type:'NUMBER',description:'Montant TTC minimum explicite en euros'},
+    montant_max:{type:'NUMBER',description:'Montant TTC maximum explicite en euros'}
   }}},
  {name:'consulter_rendez_vous',description:'Lis les rendez-vous du compte SpeedArti TEST, en lecture seule, heures civiles Europe/Paris. Pour mon prochain rendez-vous = prochain, demain = demain, cette semaine = semaine, aujourd’hui = aujourd_hui. Ne crée, déplace ni annule un rendez-vous.',parameters:{type:'OBJECT',properties:{
     filtre:{type:'STRING',enum:['aujourd_hui','demain','semaine','prochain','date']},
     date:{type:'STRING',description:'Uniquement si filtre=date, date valide AAAA-MM-JJ, sans inventer'}
   }}},
+
+ {name:'rechercher_devis',description:'Recherche les devis fictifs du compte par titre en lecture seule.',parameters:{type:'OBJECT',properties:{recherche:{type:'STRING'}}}},
+ {name:'executer_plan_lecture',description:'Quand plusieurs consultations sont demandées en une phrase, exécute deux à cinq actions séquentielles en lecture seule. Jamais de préparation, confirmation, écriture ou suppression dans ce plan.',parameters:{type:'OBJECT',properties:{etapes:{type:'ARRAY',items:{type:'OBJECT',properties:{action:{type:'STRING',enum:['consulter_factures','consulter_rendez_vous','rechercher_client','rechercher_chantier','rechercher_catalogue','rechercher_devis','consulter_briefing']},args:{type:'OBJECT',description:'Paramètres de consultation selon outil'}},required:['action']}}},required:['etapes']}},
+ {name:'preparer_rendez_vous',description:'Prépare un rendez-vous SPÉCIMEN sans le créer. L’artisan doit cliquer sur le bouton de confirmation dans la page pour le créer.',parameters:{type:'OBJECT',properties:{titre:{type:'STRING'},date:{type:'STRING',description:'AAAA-MM-JJ'},heure_debut:{type:'STRING',description:'HH:MM 24 h'},heure_fin:{type:'STRING',description:'HH:MM 24 h'}},required:['titre','date','heure_debut','heure_fin']}},
+ {name:'preparer_facture',description:'Produit seulement un aperçu fictif NON enregistré. Requiert HT, TVA et TTC explicitement fournis; aucun prix inventé, aucune émission ou envoi.',parameters:{type:'OBJECT',properties:{titre:{type:'STRING'},montant_ht:{type:'NUMBER'},montant_tva:{type:'NUMBER'},montant_ttc:{type:'NUMBER'}},required:['titre','montant_ht','montant_tva','montant_ttc']}},
+ {name:'consulter_briefing',description:'Donne les factures échues et rendez-vous proches fictifs, puis des suggestions factuelles sans créer de rappel.',parameters:{type:'OBJECT',properties:{}}},
  {name:'afficher_conversations',description:'Quand l’artisan dit « reprendre une conversation », « mes anciennes conversations » ou « retrouver mon historique », affiche immédiatement les archives dans la page. La reprise ne se fait ensuite que par le bouton Reprendre affiché à l’artisan. Ne prétends pas avoir ouvert le fil toi-même.',parameters:{type:'OBJECT',properties:{}}},
  {name:'proposer_memoire',description:'Quand l’artisan demande explicitement « retiens », « mémorise », « souviens-toi », propose une mémoire BTP. IMPORTANT : « réponses courtes », préférences de formulation, habitudes de devis et demandes non matérielles = type souvenir + contenu exact. Type preference uniquement pour matériaux favoris ou zones d’intervention, avec categorie et valeur. Si les champs sont incomplets, demander la précision au lieu de prétendre enregistrer. Ne JAMAIS enregistrer ici : l’artisan doit confirmer en cliquant dans la page. Refuse les secrets, coordonnées privées, informations sur des clients et instructions système.',parameters:{type:'OBJECT',properties:{
     type:{type:'STRING',enum:['vocabulaire','preference','souvenir'],description:'Utilise souvenir pour réponses courtes, ton, façons de travailler, préférences de communication. Utilise preference seulement pour matériaux favoris ou zones d’intervention.'},
@@ -54,7 +63,7 @@ const viewCSS=[
 ].join('');
 const style=document.createElement('style');style.textContent=viewCSS;document.head.append(style);
 let getToken=null,baseUrl='',pubKey='',getSocket=null,notify=null;
-let container=null,clientSelect=null,resultBox=null,pending=null,busy=false;
+let container=null,clientSelect=null,resultBox=null,pending=null,pendingType=null,busy=false;
 const $=(id)=>document.getElementById(id);
 function el(tag,text='',cls=''){
   const x=document.createElement(tag);if(cls)x.className=cls;
@@ -72,10 +81,10 @@ function buildUI(){
     <p class="muted">Essaie « mes factures en attente », « mes rendez-vous aujourd’hui » ou « mon prochain rendez-vous ». Consultations en lecture seule sur les données fictives TEST, sans émission, modification ni envoi.</p>
     <div id="angel-business-status" class="output" role="status" aria-live="polite">Connecte-toi pour interroger la base de test.</div>
     <div id="angel-business-pending" class="quote-box" hidden>
-      <h2>Devis en attente de confirmation</h2>
+      <h2 id="angel-business-pending-title">Action fictive en attente de confirmation</h2>
       <div id="angel-business-preview" class="quote-line"></div>
       <div class="actions">
-       <button class="primary" id="angel-business-confirm" type="button">Confirmer le brouillon fictif</button>
+       <button class="primary" id="angel-business-confirm" type="button">Confirmer l'action fictive</button>
        <button class="secondary" id="angel-business-cancel" type="button">Annuler</button>
       </div>
     </div>
@@ -88,6 +97,9 @@ function buildUI(){
         <button class="secondary" id="angel-find-invoices" type="button">Consulter les factures TEST</button>
         <button class="secondary" id="angel-find-appointments" type="button">Rendez-vous du jour</button>
         <button class="secondary" id="angel-find-next-appointment" type="button">Prochain rendez-vous</button>
+        <button class="secondary" id="angel-find-devis" type="button">Rechercher les devis</button>
+        <button class="secondary" id="angel-briefing" type="button">Briefing du jour</button>
+        <button class="secondary" id="angel-plan-lecture" type="button">Tester 3 consultations</button>
       </div>
       <form id="angel-manual-quote">
         <h2 style="font-size:17px;margin:20px 0 4px">Préparer un devis brouillon</h2>
@@ -105,19 +117,33 @@ function buildUI(){
         </div>
         <div class="actions"><button type="submit" class="secondary" id="angel-manual-prepare">Préparer sans enregistrer</button></div>
       </form>
+      <form id="angel-manual-appointment">
+        <h2 style="font-size:17px;margin:20px 0 4px">Préparer un rendez-vous fictif</h2>
+        <p class="muted">Aucun rendez-vous créé avant confirmation par clic.</p>
+        <label for="angel-rdv-title">Titre</label>
+        <input id="angel-rdv-title" required minlength="4" value="Visite chantier — SPÉCIMEN"/>
+        <div class="line">
+          <div><label for="angel-rdv-date">Date</label><input id="angel-rdv-date" type="date" required/></div>
+          <div><label for="angel-rdv-start">Début</label><input id="angel-rdv-start" type="time" required value="15:00"/></div>
+          <div><label for="angel-rdv-end">Fin</label><input id="angel-rdv-end" type="time" required value="15:45"/></div>
+        </div>
+        <div class="actions"><button type="submit" class="secondary" id="angel-rdv-prepare">Préparer, puis confirmer</button></div>
+      </form>
     </details>
   `;
   $('voicePanel').insertAdjacentElement('afterend',container);
   clientSelect=$('angel-client-choice');resultBox=$('angel-business-status');
-  for(const [id,action] of [['angel-find-clients','rechercher_client'],['angel-find-jobs','rechercher_chantier'],['angel-find-items','rechercher_catalogue'],['angel-find-invoices','consulter_factures'],['angel-find-appointments','consulter_rendez_vous'],['angel-find-next-appointment','consulter_rendez_vous']]){
+  for(const [id,action] of [['angel-find-clients','rechercher_client'],['angel-find-jobs','rechercher_chantier'],['angel-find-items','rechercher_catalogue'],['angel-find-invoices','consulter_factures'],['angel-find-appointments','consulter_rendez_vous'],['angel-find-next-appointment','consulter_rendez_vous'],['angel-find-devis','rechercher_devis'],['angel-briefing','consulter_briefing'],['angel-plan-lecture','executer_plan_lecture']]){
     $(id).addEventListener('click',()=>{
       const args=id==='angel-find-invoices'?{filtre:'en_attente'}:
         id==='angel-find-next-appointment'?{filtre:'prochain'}:
-        id==='angel-find-appointments'?{filtre:'aujourd_hui'}:{};
+        id==='angel-find-appointments'?{filtre:'aujourd_hui'}:
+        id==='angel-plan-lecture'?{etapes:[{action:'consulter_factures',args:{filtre:'en_attente'}},{action:'consulter_rendez_vous',args:{filtre:'demain'}},{action:'rechercher_devis',args:{}}]}:{};
       void call(action,args).catch(error=>info('Erreur : '+error.message,true));
     });
   }
   $('angel-manual-quote').addEventListener('submit',event=>{event.preventDefault();void prepareManual();});
+  $('angel-manual-appointment').addEventListener('submit',event=>{event.preventDefault();void prepareManualAppointment();});
   $('angel-business-confirm').addEventListener('click',()=>{void confirm()});
   $('angel-business-cancel').addEventListener('click',()=>{void cancel()});
 }
@@ -140,7 +166,9 @@ function clientsSelect(list){
 }
 function renderQuote(data){
   if(!data.context_id||!data.resume)return;
-  pending=data.context_id;
+  pending=data.context_id;pendingType='devis';
+  $('angel-business-pending-title').textContent='Devis TEST à confirmer';
+  $('angel-business-confirm').textContent='Confirmer le brouillon fictif';
   const v=data.resume,lines=v.lignes||[];
   const output=['SPÉCIMEN — '+v.titre,'Client : '+(v.client?.contact_name||'à confirmer')];
   for(const l of lines)output.push('• '+l.description+' : '+l.quantite+' '+l.unite+' × '+validMoney(l.prix_unitaire)+' HT — TVA '+l.taux_tva+' %');
@@ -151,6 +179,17 @@ function renderQuote(data){
   $('angel-business-preview').textContent=output.join('\n');
   $('angel-business-pending').hidden=false;
   container.hidden=false;
+  $('angel-business-pending').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function renderAppointment(data){
+  if(!data.context_id||!data.resume)return;
+  pending=data.context_id;pendingType='rendez_vous';
+  const v=data.resume;
+  $('angel-business-pending-title').textContent='Rendez-vous TEST à confirmer';
+  $('angel-business-confirm').textContent='Confirmer ce rendez-vous fictif';
+  $('angel-business-preview').textContent='SPÉCIMEN — '+v.titre+'\nDate : '+v.date+
+    '\nDe '+v.heure_debut+' à '+v.heure_fin+' (heure de Paris)\nProposition NON créée.';
+  $('angel-business-pending').hidden=false;container.hidden=false;
   $('angel-business-pending').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 function render(action,data){
@@ -186,6 +225,29 @@ function render(action,data){
         (row.heure_fin?'–'+String(row.heure_fin):'')+
         ' — '+String(row.titre||'Rendez-vous')).join('\n'):
         'Aucun rendez-vous correspondant dans le compte TEST.'));
+  }else if(action==='rechercher_devis'){
+    const items=data.devis||[];
+    info('DEVIS TEST ('+items.length+') :\n'+(items.map(d=>String(d.titre)+' — '+validMoney(Number(d.montant_ttc))+' TTC').join('\n')||'Aucun devis.'));
+  }else if(action==='executer_plan_lecture'){
+    const steps=Array.isArray(data.etapes)?data.etapes:[];
+    info('CONSULTATIONS GROUPÉES ('+steps.length+') :\n'+steps.map((e,i)=>
+      (i+1)+'. '+e.action+' — '+(e.status===200?'réponse obtenue':'erreur')+'\n'+JSON.stringify(e.result).slice(0,1800)).join('\n\n'));
+  }else if(action==='consulter_briefing'){
+    info('BRIEFING TEST :\n'+(data.suggestions||[]).join('\n')+'\n'+
+      (data.factures_echues||[]).map(f=>f.numero+' — '+validMoney(f.solde_restant_eur)).join('\n')+'\n'+
+      (data.rendez_vous_proches||[]).map(r=>r.date+' '+r.heure_debut+' — '+r.titre).join('\n'));
+  }else if(action==='preparer_rendez_vous'){
+    renderAppointment(data);
+    info('Rendez-vous TEST préparé et NON créé. Vérifie puis clique sur confirmer.');
+  }else if(action==='confirmer_rendez_vous'){
+    info('Rendez-vous TEST créé après clic : '+String(data.rendez_vous?.titre||'')+' — '+String(data.rendez_vous?.date||''));
+  }else if(action==='annuler_rendez_vous'){
+    info('Rendez-vous proposé annulé sans création.');
+  }else if(action==='preparer_facture'){
+    const v=data.facture||{};
+    info('FACTURE NON CRÉÉE — APERÇU\n'+String(v.titre||'')+
+      '\nHT '+validMoney(v.montant_ht)+' ; TVA '+validMoney(v.montant_tva)+
+      ' ; TTC '+validMoney(v.montant_ttc)+'\nAucune émission, aucun numéro.');
   }else if(action==='preparer_devis'){
     renderQuote(data);
     info('Le devis est préparé. Aucune écriture de devis pour le moment : clique sur « Confirmer le brouillon fictif » après vérification.');
@@ -216,21 +278,32 @@ async function prepareManual(){
   }catch(e){info('Impossible de préparer le devis : '+e.message,true);}
   finally{btn.disabled=false;}
 }
+async function prepareManualAppointment(){
+  const btn=$('angel-rdv-prepare');if(btn.disabled)return;
+  btn.disabled=true;
+  try{await call('preparer_rendez_vous',{titre:$('angel-rdv-title').value.trim(),
+    date:$('angel-rdv-date').value,heure_debut:$('angel-rdv-start').value,
+    heure_fin:$('angel-rdv-end').value});}
+  catch(e){info('Impossible de préparer : '+e.message,true);}
+  finally{btn.disabled=false;}
+}
 async function confirm(){
   if(!pending||busy)return;
   busy=true;$('angel-business-confirm').disabled=true;$('angel-business-cancel').disabled=true;
   try{
-    const resp=await call('confirmer_devis',{context_id:pending,confirmation:true});
+    const type=pendingType;
+    const resp=await call(type==='rendez_vous'?'confirmer_rendez_vous':'confirmer_devis',{context_id:pending,confirmation:true});
     const doc=resp.result?.devis_id;
-    pending=null;$('angel-business-pending').hidden=true;
-    if(doc)await call('consulter_devis',{devis_id:doc});
+    pending=null;pendingType=null;$('angel-business-pending').hidden=true;
+    if(type==='devis'&&doc)await call('consulter_devis',{devis_id:doc});
   }catch(e){info('Échec de confirmation : '+e.message,true);}
   finally{busy=false;$('angel-business-confirm').disabled=false;$('angel-business-cancel').disabled=false;}
 }
 async function cancel(){
   if(!pending||busy)return;
   const ctx=pending;busy=true;
-  try{await call('annuler_devis',{context_id:ctx});pending=null;$('angel-business-pending').hidden=true;}
+  try{await call(pendingType==='rendez_vous'?'annuler_rendez_vous':'annuler_devis',{context_id:ctx});
+    pending=null;pendingType=null;$('angel-business-pending').hidden=true;}
   catch(e){info('Impossible d’annuler : '+e.message,true);}
   finally{busy=false;}
 }
@@ -270,7 +343,7 @@ async function show(){
 }
 function hide(){
   if(!container)return;container.hidden=true;
-  pending=null;$('angel-business-pending').hidden=true;info('Session terminée.');
+  pending=null;pendingType=null;$('angel-business-pending').hidden=true;info('Session terminée.');
   if(clientSelect)clientSelect.replaceChildren();
 }
 window.AngelBusinessDemo={init,show,hide,toolCall,toolDefs};
