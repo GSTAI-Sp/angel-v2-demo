@@ -1,9 +1,15 @@
 name: Déployer la vitrine Ángel V2
 
+# Seul un contrôle CI RÉUSSI peut publier la démo TEST.
+# Ne pas utiliser push/dispatch directement pour déployer.
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - Vérifier le client vocal public
+    types:
+      - completed
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -11,26 +17,54 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: angel-v2-pages-verified
   cancel-in-progress: false
 
 jobs:
   deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository }}
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
     steps:
-      - name: Récupérer les fichiers publics
+      - name: Récupérer UNIQUEMENT le commit vérifié
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - name: Contrôler le commit et son environnement avant publication
+        env:
+          VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          CURRENT_SHA="$(git ls-remote origin refs/heads/main | cut -f1)"
+          test "$CURRENT_SHA" = "$VERIFIED_SHA" || {
+            echo "::error::Une version plus récente existe. Ne pas publier un ancien commit."
+            exit 1
+          }
+          test "$(git rev-parse HEAD)" = "$VERIFIED_SHA"
+          grep -Fq 'dchunxngtdbtgxbccmlb' index.html
+          ! grep -Eq 'hjrmkkybhhwfelmatcga|sb_secret_|GEMINI_API_KEY' index.html
+
+      - name: Préparer UNIQUEMENT les fichiers publics de démo
+        run: |
+          set -euo pipefail
+          mkdir public-site
+          cp index.html archive.js auto-memory.js memory-intent.js memory-learn.js memory-manager.js memory.js metier.js transcript-preview.js public-site/
+          test -f public-site/index.html
+          test ! -d public-site/.github
+          test ! -f public-site/README.md
+
       - name: Préparer GitHub Pages
         uses: actions/configure-pages@v5
         with:
           enablement: true
-      - name: Préparer les fichiers statiques
+      - name: Charger l'artefact approuvé
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
-      - name: Publier
+          path: public-site
+      - name: Publier uniquement la démo TEST
         id: deployment
         uses: actions/deploy-pages@v4
