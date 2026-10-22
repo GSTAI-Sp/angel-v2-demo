@@ -79,6 +79,11 @@ jobs:
           assert "RÈGLE PRIORITAIRE DE LA DÉMO TEST" in html
           assert "correctDevisAfterRefusal" in html
           assert "recoverDevisRefusal" in metier
+          assert "recoverBusinessVoice" in metier
+          assert "correctBusinessAfterTurn" in html
+          assert "preparer_deplacement_rendez_vous" in metier
+          assert "Confirmer le déplacement fictif" in metier
+          assert "Aucune facture créée" in metier
           assert "Dernier outil vocal" in metier
           assert "Lister tous mes devis TEST" in metier
           assert len(js) > 2500
@@ -100,4 +105,5 @@ jobs:
           node memory-ui.test.cjs
           node memory-manager.test.cjs
           node devis-voice-guard.test.cjs
+          node metier-voice-sprints-567.test.cjs
           node scripts/quality-gate.cjs
