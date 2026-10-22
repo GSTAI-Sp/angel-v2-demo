@@ -36,14 +36,14 @@ const toolDefs=[
         nom:{type:'STRING'},query:{type:'STRING'},
         montant_min:{type:'NUMBER'},montant_max:{type:'NUMBER'}
       }}},required:['action']}}},required:['etapes']}},
- {name:'preparer_rendez_vous',description:'Prépare un rendez-vous SPÉCIMEN sans le créer. L’artisan doit cliquer sur le bouton de confirmation dans la page pour le créer.',parameters:{type:'OBJECT',properties:{titre:{type:'STRING'},date:{type:'STRING',description:'AAAA-MM-JJ'},heure_debut:{type:'STRING',description:'HH:MM 24 h'},heure_fin:{type:'STRING',description:'HH:MM 24 h'}},required:['titre','date','heure_debut','heure_fin']}},
- {name:'preparer_deplacement_rendez_vous',description:'Prépare une modification d’horaire d’un rendez-vous strictement SPÉCIMEN TEST. L’artisan doit ensuite confirmer par clic; aucun autre RDV ni contact réel n’est modifiable.',parameters:{type:'OBJECT',properties:{
+ {name:'preparer_rendez_vous',description:'Si l’artisan demande de préparer ou programmer un rendez-vous fictif et précise le titre, la date future et les heures, appelle immédiatement cet outil. Il crée SEULEMENT une proposition SPÉCIMEN. Le rendez-vous n’existe pas tant que l’artisan ne clique pas sur le bouton visible Confirmer.',parameters:{type:'OBJECT',properties:{titre:{type:'STRING'},date:{type:'STRING',description:'AAAA-MM-JJ'},heure_debut:{type:'STRING',description:'HH:MM 24 h'},heure_fin:{type:'STRING',description:'HH:MM 24 h'}},required:['titre','date','heure_debut','heure_fin']}},
+ {name:'preparer_deplacement_rendez_vous',description:'Pour déplacer un rendez-vous TEST existant, consulte d’abord son agenda pour obtenir l’ID du rendez-vous, utilise sa durée enregistrée si la nouvelle heure de fin manque, puis prépare le déplacement en donnant ID et nouveau créneau. Le déplacement n’est PAS effectué sans clic de confirmation humain; refuser tout rendez-vous hors SPÉCIMEN TEST.',parameters:{type:'OBJECT',properties:{
     rendez_vous_id:{type:'STRING',description:'Identifiant obtenu par consulter_rendez_vous'},
     date:{type:'STRING',description:'Nouvelle date AAAA-MM-JJ'},
     heure_debut:{type:'STRING',description:'HH:MM'},
     heure_fin:{type:'STRING',description:'HH:MM'}
   },required:['rendez_vous_id','date','heure_debut','heure_fin']}},
- {name:'preparer_facture',description:'Produit seulement un aperçu fictif NON enregistré. Requiert HT, TVA et TTC explicitement fournis; aucun prix inventé, aucune émission ou envoi.',parameters:{type:'OBJECT',properties:{titre:{type:'STRING'},montant_ht:{type:'NUMBER'},montant_tva:{type:'NUMBER'},montant_ttc:{type:'NUMBER'}},required:['titre','montant_ht','montant_tva','montant_ttc']}},
+ {name:'preparer_facture',description:'Quand l’artisan demande un aperçu de facture fictive, appelle immédiatement cet outil si HT, TVA et TTC sont donnés. Un titre descriptif est facultatif et sera remplacé par un libellé SPÉCIMEN. Aucun document réel créé, émis ou numéroté.',parameters:{type:'OBJECT',properties:{titre:{type:'STRING',description:'Facultatif pour un aperçu fictif'},montant_ht:{type:'NUMBER'},montant_tva:{type:'NUMBER'},montant_ttc:{type:'NUMBER'}},required:['montant_ht','montant_tva','montant_ttc']}},
  {name:'consulter_briefing',description:'Donne les factures échues et rendez-vous proches fictifs, puis des suggestions factuelles sans créer de rappel.',parameters:{type:'OBJECT',properties:{}}},
  {name:'afficher_conversations',description:'Quand l’artisan dit « reprendre une conversation », « mes anciennes conversations » ou « retrouver mon historique », affiche immédiatement les archives dans la page. La reprise ne se fait ensuite que par le bouton Reprendre affiché à l’artisan. Ne prétends pas avoir ouvert le fil toi-même.',parameters:{type:'OBJECT',properties:{}}},
  {name:'proposer_memoire',description:'Quand l’artisan demande explicitement « retiens », « mémorise », « souviens-toi », propose une mémoire BTP. IMPORTANT : « réponses courtes », préférences de formulation, habitudes de devis et demandes non matérielles = type souvenir + contenu exact. Type preference uniquement pour matériaux favoris ou zones d’intervention, avec categorie et valeur. Si les champs sont incomplets, demander la précision au lieu de prétendre enregistrer. Ne JAMAIS enregistrer ici : l’artisan doit confirmer en cliquant dans la page. Refuse les secrets, coordonnées privées, informations sur des clients et instructions système.',parameters:{type:'OBJECT',properties:{
@@ -203,7 +203,8 @@ function renderAppointment(data,isMove=false){
   $('angel-business-pending-title').textContent=isMove?'Déplacement du rendez-vous TEST':'Rendez-vous TEST à confirmer';
   $('angel-business-confirm').textContent=isMove?'Confirmer le déplacement fictif':'Confirmer ce rendez-vous fictif';
   $('angel-business-preview').textContent='SPÉCIMEN — '+v.titre+'\nDate : '+v.date+
-    '\nDe '+v.heure_debut+' à '+v.heure_fin+' (heure de Paris)\nProposition NON créée.';
+    '\nDe '+v.heure_debut+' à '+v.heure_fin+' (heure de Paris)'+
+    (isMove?'\nDéplacement NON appliqué.':'\nProposition NON créée.');
   $('angel-business-pending').hidden=false;container.hidden=false;
   $('angel-business-pending').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
@@ -376,6 +377,128 @@ async function recoverDevisRefusal(){
   diagnostic('Lecture corrective réussie : '+list.length+' devis TEST trouvés. Correction vocale demandée.');
   return {summary,count:list.length};
 }
+
+// Parcours vocal de secours 5/6/7 : les actions préparatoires doivent être
+// vérifiées par le serveur TEST même si Gemini refuse ou choisit le mauvais outil.
+// Aucune confirmation ni émission n'est appelée depuis cette fonction.
+function foldSpeech(raw){
+  return String(raw||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+}
+function speechDate(text){
+  const months={janvier:1,fevrier:2,mars:3,avril:4,mai:5,juin:6,juillet:7,
+    aout:8,septembre:9,octobre:10,novembre:11,decembre:12};
+  const m=foldSpeech(text).match(/\b([0-3]?\d)\s+(janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre)(?:\s+(\d{4}))?\b/);
+  if(!m)return null;
+  const year=m[3]?Number(m[3]):Number(new Intl.DateTimeFormat('en-GB',{
+    year:'numeric',timeZone:'Europe/Paris'}).format(new Date()));
+  const month=months[m[2]],day=Number(m[1]);
+  const iso=year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+  const date=new Date(iso+'T12:00:00Z');
+  return date.toISOString().slice(0,10)===iso?iso:null;
+}
+function speechTimes(text){
+  const t=foldSpeech(text);
+  const found=[...t.matchAll(/\b([01]?\d|2[0-3])\s*(?:h(?:eure)?s?|:)\s*([0-5]?\d)?\b/g)];
+  return found.map(m=>{
+    const h=Number(m[1]),min=m[2]===undefined?0:Number(m[2]);
+    return {text:String(h).padStart(2,'0')+':'+String(min).padStart(2,'0'),total:h*60+min};
+  });
+}
+function speechMoney(text){
+  const t=foldSpeech(text),out={};
+  for(const m of t.matchAll(/(\d[\d \u00a0\u202f]*(?:[.,]\d{1,2})?)\s*(?:€|euros?)?\s*(?:de\s+)?(ht|ttc|tva)\b/g)){
+    const amount=Number(m[1].replace(/[\s\u00a0\u202f]/g,'').replace(',','.'));
+    if(Number.isFinite(amount)&&amount>=0&&amount<=1000000)out[m[2]]=amount;
+  }
+  return out;
+}
+function speechIntent(text){
+  const t=foldSpeech(text);
+  if(/\b(?:decale|deplacer|deplace|decal[eé]r|reporte|reporter)\b/.test(t)&&
+     /\brendez[\s-]?vous\b/.test(t))return 'deplacement';
+  if(/\b(?:prepare|preparer|programme|programmer|planifie|planifier|cree|creer)\b/.test(t)&&
+     /\brendez[\s-]?vous\b/.test(t))return 'rendez_vous';
+  if(/\b(?:prepare|preparer|fais|faire)\b/.test(t)&&
+     /\bfacture\b/.test(t) && /\b(?:fictive?|apercu|simulation|specimen)\b/.test(t))
+    return 'facture';
+  return null;
+}
+function minutesClock(value){
+  const parts=String(value||'').split(':');
+  if(parts.length!==2)return null;
+  const h=Number(parts[0]),m=Number(parts[1]);
+  if(!Number.isInteger(h)||!Number.isInteger(m)||h<0||h>23||m<0||m>59)return null;
+  return h*60+m;
+}
+function formatClock(m){
+  return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+}
+async function recoverBusinessVoice(text){
+  const intent=speechIntent(text);
+  if(!intent)return {handled:false};
+  if(pending)return {handled:true,spoken:'Une proposition est déjà en attente. Vérifie-la puis confirme ou annule avant de poursuivre.'};
+  try{
+    if(intent==='facture'){
+      const amounts=speechMoney(text);
+      if(!['ht','tva','ttc'].every(k=>Object.hasOwn(amounts,k)))
+        return {handled:true,spoken:'Pour préparer l’aperçu de facture fictive, précise les trois montants : HT, TVA et TTC.'};
+      const data=await call('preparer_facture',{montant_ht:amounts.ht,
+        montant_tva:amounts.tva,montant_ttc:amounts.ttc});
+      if(data.fictif!==true||data.lecture_seule!==true||data.facture?.statut!=='NON_CREE')
+        throw new Error('L’aperçu de facture n’a pas été confirmé comme non enregistré.');
+      return {handled:true,spoken:'Aperçu de facture fictive préparé : '+
+        validMoney(data.facture.montant_ht)+' HT, '+validMoney(data.facture.montant_tva)+
+        ' de TVA, '+validMoney(data.facture.montant_ttc)+
+        ' TTC. Aucune facture créée, émise ou numérotée.'};
+    }
+    const date=speechDate(text),hours=speechTimes(text);
+    if(!date||hours.length<2)
+      return {handled:true,spoken:'Précise une date complète et deux heures pour préparer ce rendez-vous fictif.'};
+    if(intent==='rendez_vous'){
+      const t=foldSpeech(text);
+      const label=t.match(/\bpour\s+(?:un|une)\s+([^.,!?]+)/);
+      const titre=(label?label[1].trim():'Rendez-vous vocal SPÉCIMEN').slice(0,115);
+      const start=hours[0],end=hours[1];
+      if(end.total<=start.total)
+        return {handled:true,spoken:'L’heure de fin doit être après le début. Aucun rendez-vous créé.'};
+      const data=await call('preparer_rendez_vous',{titre,date,
+        heure_debut:start.text,heure_fin:end.text});
+      if(!data.context_id||data.status!=='confirmation_requise')
+        throw new Error('La proposition de rendez-vous n’a pas été acceptée.');
+      return {handled:true,spoken:'Rendez-vous fictif préparé pour le '+date+
+        ', de '+start.text+' à '+end.text+'. Il n’est PAS créé. Clique sur Confirmer ce rendez-vous fictif pour l’inscrire dans le calendrier TEST.'};
+    }
+    // Déplacement : on déduit seulement la durée d'un rendez-vous EXISTANT et
+    // correspondant exactement à la date et à l'heure de départ explicitement données.
+    const original=hours[0],requested=hours[1];
+    if(original.total===requested.total)
+      return {handled:true,spoken:'Le nouveau début doit être différent de l’ancien. Aucun changement réalisé.'};
+    const list=await call('consulter_rendez_vous',{filtre:'date',date});
+    if(list.fictif!==true||list.lecture_seule!==true||!Array.isArray(list.rendez_vous))
+      throw new Error('Agenda TEST invalide.');
+    const matches=list.rendez_vous.filter(item=>item.date===date&&item.heure_debut===original.text);
+    if(matches.length!==1)return {handled:true,spoken:matches.length?
+      'Plusieurs rendez-vous commencent à cette heure. Précise le rendez-vous à déplacer.' :
+      'Aucun rendez-vous TEST ne commence à '+original.text+' le '+date+'. Aucun changement réalisé.'};
+    const row=matches[0],from=minutesClock(row.heure_debut),to=minutesClock(row.heure_fin);
+    if(from===null||to===null||to<=from)
+      return {handled:true,spoken:'L’heure de fin de ce rendez-vous est inconnue. Précise la nouvelle heure de fin.'};
+    const end=requested.total+(to-from);
+    if(end>=24*60)
+      return {handled:true,spoken:'Ce déplacement dépasse minuit et n’est pas proposé en démo TEST.'};
+    const data=await call('preparer_deplacement_rendez_vous',{
+      rendez_vous_id:row.id,date,heure_debut:requested.text,heure_fin:formatClock(end)});
+    if(!data.context_id||data.status!=='confirmation_requise')
+      throw new Error('La proposition de déplacement n’a pas été acceptée.');
+    return {handled:true,spoken:'Déplacement fictif préparé pour le '+date+
+      ', de '+requested.text+' à '+formatClock(end)+'. La durée initiale est conservée. Aucun changement appliqué : clique sur Confirmer le déplacement fictif.'};
+  }catch(err){
+    const message=String(err?.message||'erreur').slice(0,160);
+    info('Ángel — demande métier : '+message,true);
+    return {handled:true,spoken:'Je n’ai pas pu préparer cette action TEST : '+message+
+      ' Aucune confirmation automatique ni émission de facture.'};
+  }
+}
 function init(ctx){
   baseUrl=ctx.baseUrl;pubKey=ctx.publicKey;getToken=ctx.getToken;getSocket=ctx.getSocket;notify=ctx.notify||null;
   if(!baseUrl.startsWith('https://dchunxngtdbtgxbccmlb.supabase.co'))
@@ -394,5 +517,5 @@ function hide(){
   pending=null;pendingType=null;$('angel-business-pending').hidden=true;info('Session terminée.');
   if(clientSelect)clientSelect.replaceChildren();
 }
-window.AngelBusinessDemo={init,show,hide,toolCall,toolDefs,recoverDevisRefusal};
+window.AngelBusinessDemo={init,show,hide,toolCall,toolDefs,recoverDevisRefusal,recoverBusinessVoice,speechIntent,speechDate,speechTimes,speechMoney};
 })();
