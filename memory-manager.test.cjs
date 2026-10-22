@@ -87,6 +87,8 @@ manager.init({baseUrl:'https://dchunxngtdbtgxbccmlb.supabase.co',publicKey:'sb_p
  assert.equal(document.getElementById('angel-memory-manager-list').children.filter(x=>x.className==='angel-memory-item').length,1);
  // Une mise à jour en base sans relecture valide ne doit JAMAIS afficher un succès.
  saved.push({id:uuid1,kind:'souvenir',text:'Je préfère du bois',updated_at:stamp,origin:'angel_v2_test'});
+ // Le test précédent filtrait exclusivement le vocabulaire : restaurer la vue entière.
+ filter.value='all';filter.listeners.change();
  assert.equal(await manager.refresh(),true);
  list=document.getElementById('angel-memory-manager-list');
  const final= list.children.filter(x=>x.className==='angel-memory-item').find(
