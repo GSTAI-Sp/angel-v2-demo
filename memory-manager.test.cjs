@@ -21,7 +21,7 @@ let saved=[
  {id:uuid1,kind:'souvenir',text:'Je préfère des réponses courtes pour les devis',updated_at:stamp,origin:'angel_v2_test'},
  {id:uuid2,kind:'vocabulaire',text:'ml → mètre linéaire',source:'ml',value:'mètre linéaire',updated_at:stamp,origin:'angel_v2_test'},
  {id:uuid3,kind:'preference',text:'pin',value:'pin',category:'materiaux_favoris',updated_at:stamp,origin:'angel_v2_test'}
-],changes=0,confirmCount=0,requests=[],allowDelete=false;
+],changes=0,confirmCount=0,requests=[],allowDelete=false,readbackEnabled=true;
 const fetch=async (_url,opts)=>{
  const request=JSON.parse(opts.body);requests.push(request);
  if(opts.headers.Authorization!=='Bearer TEST_JWT')return {ok:false,status:401,json:async()=>({error:'JWT invalide'})};
@@ -43,7 +43,15 @@ const fetch=async (_url,opts)=>{
 const context=vm.createContext({document,window:{confirm:()=>{confirmCount++;return allowDelete;}},fetch,console});
 vm.runInContext(fs.readFileSync('memory-manager.js','utf8'),context);
 const manager=context.window.AngelMemoryManager;
-manager.init({baseUrl:'https://dchunxngtdbtgxbccmlb.supabase.co',publicKey:'sb_publishable_test',getToken:()=> 'TEST_JWT',onChanged:async()=>{changes++}});
+manager.init({baseUrl:'https://dchunxngtdbtgxbccmlb.supabase.co',publicKey:'sb_publishable_test',getToken:()=> 'TEST_JWT',onChanged:async()=>{
+  changes++;
+  if(!readbackEnabled)return null;
+  return {environment:'TEST',read_only:true,
+    long_terme:saved.filter(x=>x.kind==='souvenir').map(x=>({fait:x.text})),
+    vocabulaire:saved.filter(x=>x.kind==='vocabulaire').map(x=>({source:x.source,cible:x.value})),
+    profile:saved.filter(x=>x.kind==='preference').map(x=>({categorie:x.category,valeur:{texte:x.value}}))
+  };
+}});
 (async()=>{
  assert.equal(await manager.show(),true);
  const panel=document.getElementById('angel-memory-manager');
@@ -60,7 +68,7 @@ manager.init({baseUrl:'https://dchunxngtdbtgxbccmlb.supabase.co',publicKey:'sb_p
  await form.listeners.submit({preventDefault(){}});
  assert.equal(changes,1);
  assert.equal(saved[0].text,'Je préfère des réponses très courtes pour les devis');
- assert.ok(document.getElementById('angel-memory-manager-status').textContent.includes('corrigée'));
+ assert.ok(document.getElementById('angel-memory-manager-status').textContent.includes('CORRECTION VÉRIFIÉE'));
  // Recharged row now has fresh etag.
  list=document.getElementById('angel-memory-manager-list');
  rows=list.children.filter(x=>x.className==='angel-memory-item');
@@ -72,13 +80,29 @@ manager.init({baseUrl:'https://dchunxngtdbtgxbccmlb.supabase.co',publicKey:'sb_p
  await updatedButtons.children[1].listeners.click();
  assert.equal(saved.length,2);
  assert.equal(changes,2);
- assert.ok(document.getElementById('angel-memory-manager-status').textContent.includes('supprimée'));
+ assert.ok(document.getElementById('angel-memory-manager-status').textContent.includes('SUPPRESSION VÉRIFIÉE'));
  assert.equal(requests.filter(x=>x.action==='delete').length,1);
  const filter=document.getElementById('angel-memory-filter');
  filter.value='vocabulaire';filter.listeners.change();
  assert.equal(document.getElementById('angel-memory-manager-list').children.filter(x=>x.className==='angel-memory-item').length,1);
+ // Une mise à jour en base sans relecture valide ne doit JAMAIS afficher un succès.
+ saved.push({id:uuid1,kind:'souvenir',text:'Je préfère du bois',updated_at:stamp,origin:'angel_v2_test'});
+ assert.equal(await manager.refresh(),true);
+ list=document.getElementById('angel-memory-manager-list');
+ const final= list.children.filter(x=>x.className==='angel-memory-item').find(
+   x=>x.children[1].textContent.includes('Je préfère du bois'));
+ assert.ok(final);
+ final.children[2].children[0].listeners.click();
+ final.children[3].children[1].value='Je préfère du bois réutilisable';
+ readbackEnabled=false;
+ await final.children[3].listeners.submit({preventDefault(){}});
+ assert.equal(saved.find(x=>x.id===uuid1).text,'Je préfère du bois réutilisable');
+ const warning=document.getElementById('angel-memory-manager-status').textContent;
+ assert.ok(warning.includes('vérification incomplète'),'A failed live readback is not a validated correction');
+ assert.ok(!warning.includes('CORRECTION VÉRIFIÉE'),'Never show false success when Live is stale');
+ readbackEnabled=true;
  manager.hide();
  assert.equal(panel.hidden,true);
  assert.equal(document.getElementById('angel-memory-manager-list').children.length,0);
- console.log('PASS memory manager: owner list, corrected value, confirmed delete, cancelled delete, filters, refresh and logout');
+ console.log('PASS memory manager: corrected/deleted values verified in Live, cancelled delete, filters, false-success prevention, logout');
 })().catch(e=>{console.error(e);process.exitCode=1});
