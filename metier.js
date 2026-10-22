@@ -2,7 +2,7 @@
 // Jamais de secrets serveur ici, aucun accès à SpeedArti production.
 (() => {
 'use strict';
-const allowed=new Set(['rechercher_client','rechercher_chantier','rechercher_catalogue','preparer_devis','consulter_devis','afficher_conversations','proposer_memoire']);
+const allowed=new Set(['rechercher_client','rechercher_chantier','rechercher_catalogue','preparer_devis','consulter_devis','afficher_conversations','proposer_memoire','consulter_factures','consulter_rendez_vous']);
 const toolDefs=[
  {name:'rechercher_client',description:'Recherche un client fictif SpeedArti. Sans nom, liste les clients. Utilise ce résultat pour identifier un client avant un devis.',parameters:{type:'OBJECT',properties:{nom:{type:'STRING',description:'Nom du client demandé (facultatif)'}}}},
  {name:'rechercher_chantier',description:'Consulte la liste des chantiers fictifs dans SpeedArti TEST.',parameters:{type:'OBJECT',properties:{}}},
@@ -19,6 +19,13 @@ const toolDefs=[
     },required:['description','quantite','unite']}}
   },required:['titre','lignes']}},
  {name:'consulter_devis',description:'Affiche un devis brouillon fictif créé dans la base TEST. Utilise un ID issu du résultat de création.',parameters:{type:'OBJECT',properties:{devis_id:{type:'STRING'}},required:['devis_id']}},
+ {name:'consulter_factures',description:'Consulte UNIQUEMENT les factures du compte SpeedArti TEST en lecture seule : montants et soldes de la base sans les inventer. Pour impayés et factures à payer, filtre en_attente. Pour factures échues, filtre en_retard. Pour échéances cette semaine, filtre echeances_semaine. Aucune émission, relance, modification ou envoi.',parameters:{type:'OBJECT',properties:{
+    filtre:{type:'STRING',enum:['toutes','en_attente','en_retard','echeances_semaine'],description:'Type de consultation demandé. Utiliser en_attente pour impayés, en_retard pour échues.'}
+  }}},
+ {name:'consulter_rendez_vous',description:'Lis les rendez-vous du compte SpeedArti TEST, en lecture seule, heures civiles Europe/Paris. Pour mon prochain rendez-vous = prochain, demain = demain, cette semaine = semaine, aujourd’hui = aujourd_hui. Ne crée, déplace ni annule un rendez-vous.',parameters:{type:'OBJECT',properties:{
+    filtre:{type:'STRING',enum:['aujourd_hui','demain','semaine','prochain','date']},
+    date:{type:'STRING',description:'Uniquement si filtre=date, date valide AAAA-MM-JJ, sans inventer'}
+  }}},
  {name:'afficher_conversations',description:'Quand l’artisan dit « reprendre une conversation », « mes anciennes conversations » ou « retrouver mon historique », affiche immédiatement les archives dans la page. La reprise ne se fait ensuite que par le bouton Reprendre affiché à l’artisan. Ne prétends pas avoir ouvert le fil toi-même.',parameters:{type:'OBJECT',properties:{}}},
  {name:'proposer_memoire',description:'Quand l’artisan demande explicitement « retiens », « mémorise », « souviens-toi », propose une mémoire BTP. IMPORTANT : « réponses courtes », préférences de formulation, habitudes de devis et demandes non matérielles = type souvenir + contenu exact. Type preference uniquement pour matériaux favoris ou zones d’intervention, avec categorie et valeur. Si les champs sont incomplets, demander la précision au lieu de prétendre enregistrer. Ne JAMAIS enregistrer ici : l’artisan doit confirmer en cliquant dans la page. Refuse les secrets, coordonnées privées, informations sur des clients et instructions système.',parameters:{type:'OBJECT',properties:{
     type:{type:'STRING',enum:['vocabulaire','preference','souvenir'],description:'Utilise souvenir pour réponses courtes, ton, façons de travailler, préférences de communication. Utilise preference seulement pour matériaux favoris ou zones d’intervention.'},
@@ -61,8 +68,8 @@ function buildUI(){
   container=el('section','','card angel-business');container.id='angel-business-panel';container.hidden=true;
   container.innerHTML=`
     <div class="test-label">Modules métier connectés · données fictives</div>
-    <h2 style="margin:9px 0 4px">Ángel peut aussi agir</h2>
-    <p class="muted">Demande-lui « cherche mes clients », « quels sont mes chantiers ? » ou « prépare un devis ». Tu peux consulter les résultats ici, sans quitter la conversation.</p>
+    <h2 style="margin:9px 0 4px">Ángel consulte les données métier</h2>
+    <p class="muted">Essaie « mes factures en attente », « mes rendez-vous aujourd’hui » ou « mon prochain rendez-vous ». Consultations en lecture seule sur les données fictives TEST, sans émission, modification ni envoi.</p>
     <div id="angel-business-status" class="output" role="status" aria-live="polite">Connecte-toi pour interroger la base de test.</div>
     <div id="angel-business-pending" class="quote-box" hidden>
       <h2>Devis en attente de confirmation</h2>
@@ -78,6 +85,9 @@ function buildUI(){
         <button class="secondary" id="angel-find-clients" type="button">Voir les clients</button>
         <button class="secondary" id="angel-find-jobs" type="button">Voir les chantiers</button>
         <button class="secondary" id="angel-find-items" type="button">Voir le catalogue</button>
+        <button class="secondary" id="angel-find-invoices" type="button">Consulter les factures TEST</button>
+        <button class="secondary" id="angel-find-appointments" type="button">Rendez-vous du jour</button>
+        <button class="secondary" id="angel-find-next-appointment" type="button">Prochain rendez-vous</button>
       </div>
       <form id="angel-manual-quote">
         <h2 style="font-size:17px;margin:20px 0 4px">Préparer un devis brouillon</h2>
@@ -99,8 +109,13 @@ function buildUI(){
   `;
   $('voicePanel').insertAdjacentElement('afterend',container);
   clientSelect=$('angel-client-choice');resultBox=$('angel-business-status');
-  for(const [id,action] of [['angel-find-clients','rechercher_client'],['angel-find-jobs','rechercher_chantier'],['angel-find-items','rechercher_catalogue']]){
-    $(id).addEventListener('click',()=>{void call(action,{}).catch(error=>info('Erreur : '+error.message,true));});
+  for(const [id,action] of [['angel-find-clients','rechercher_client'],['angel-find-jobs','rechercher_chantier'],['angel-find-items','rechercher_catalogue'],['angel-find-invoices','consulter_factures'],['angel-find-appointments','consulter_rendez_vous'],['angel-find-next-appointment','consulter_rendez_vous']]){
+    $(id).addEventListener('click',()=>{
+      const args=id==='angel-find-invoices'?{filtre:'en_attente'}:
+        id==='angel-find-next-appointment'?{filtre:'prochain'}:
+        id==='angel-find-appointments'?{filtre:'aujourd_hui'}:{};
+      void call(action,args).catch(error=>info('Erreur : '+error.message,true));
+    });
   }
   $('angel-manual-quote').addEventListener('submit',event=>{event.preventDefault();void prepareManual();});
   $('angel-business-confirm').addEventListener('click',()=>{void confirm()});
@@ -149,6 +164,28 @@ function render(action,data){
   }else if(action==='rechercher_catalogue'){
     const list=data.articles||[];
     info('Articles catalogue ('+list.length+') :\n'+(list.map(c=>c.nom+' — '+validMoney(Number(c.prix_unitaire))+' HT/'+c.unite).join('\n')||'Catalogue vide : demande un tarif de test à l’artisan.'));
+  }else if(action==='consulter_factures'){
+    const items=Array.isArray(data.factures)?data.factures:[];
+    if(!data.lecture_seule||!data.fictif)throw Error('Réponse facture non conforme à la démo TEST.');
+    info('FACTURES SPÉCIMEN — '+String(data.filtre||'toutes')+
+      ' — '+String(data.date_reference||'')+' ('+String(data.fuseau_horaire||'Europe/Paris')+')'+
+      '\n'+(items.length?items.map(row=>
+        String(row.numero||'Numéro absent')+' — '+String(row.statut||'statut inconnu')+
+        ' — TTC '+validMoney(row.montant_ttc_eur)+
+        ' — reste '+validMoney(row.solde_restant_eur)+
+        ' — échéance '+String(row.date_echeance||'non renseignée')+
+        (row.paiement_a_verifier?' (solde à vérifier)':'')
+      ).join('\n'):'Aucune facture correspondante dans le compte TEST.'));
+  }else if(action==='consulter_rendez_vous'){
+    const items=Array.isArray(data.rendez_vous)?data.rendez_vous:[];
+    if(!data.lecture_seule||!data.fictif)throw Error('Réponse agenda non conforme à la démo TEST.');
+    info('AGENDA SPÉCIMEN — '+String(data.filtre||'')+
+      ' ('+String(data.fuseau_horaire||'Europe/Paris')+')\n'+
+      (items.length?items.map(row=>String(row.date||'')+' '+
+        String(row.heure_debut||'heure non renseignée')+
+        (row.heure_fin?'–'+String(row.heure_fin):'')+
+        ' — '+String(row.titre||'Rendez-vous')).join('\n'):
+        'Aucun rendez-vous correspondant dans le compte TEST.'));
   }else if(action==='preparer_devis'){
     renderQuote(data);
     info('Le devis est préparé. Aucune écriture de devis pour le moment : clique sur « Confirmer le brouillon fictif » après vérification.');
