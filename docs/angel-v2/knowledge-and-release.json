@@ -3,7 +3,7 @@
   "scope": "DEMO_TEST_SEULEMENT",
   "source_of_truth": "GSTAI-Sp/speedarti-thibault@angel-v2, démonstration GSTAI-Sp/angel-v2-demo@main",
   "knowledge_base_existing": "public.knowledge_base (Supabase TEST), ne pas créer de base parallèle",
-  "knowledge_sync_status": "A_VERIFIER_DANS_BASE_EXISTANTE",
+  "knowledge_sync_status": "VERIFIE_DANS_BASE_EXISTANTE",
   "manual_acceptance": "EN_ATTENTE",
   "production_approval": false,
   "completion_status": "EN_COURS",
@@ -28,49 +28,49 @@
       "meaning": "Clients fictifs autorisés uniquement; recherche bornée; zéro exposition d'un autre artisan.",
       "known_limits": "Réseau, absence de client, contrôle propriétaire.",
       "human_test": "EN_ATTENTE",
-      "knowledge_db_synced": false
+      "knowledge_db_synced": true
     },
     {
       "name": "rechercher_chantier",
       "meaning": "Liste des chantiers fictifs autorisés TEST; lecture seule.",
       "known_limits": "Absence de chantiers, contrôle propriétaire.",
       "human_test": "EN_ATTENTE",
-      "knowledge_db_synced": false
+      "knowledge_db_synced": true
     },
     {
       "name": "rechercher_catalogue",
       "meaning": "Catalogue TEST et prix réellement présents, aucune référence ou TVA inventée.",
       "known_limits": "Catalogue vide et absence de prix.",
       "human_test": "EN_ATTENTE",
-      "knowledge_db_synced": false
+      "knowledge_db_synced": true
     },
     {
       "name": "preparer_devis",
       "meaning": "Brouillon fictif uniquement; prix, quantités, unités, TVA explicites; confirmation humaine.",
       "known_limits": "Validation humaine obligatoire, pas d'envoi.",
       "human_test": "EN_ATTENTE",
-      "knowledge_db_synced": false
+      "knowledge_db_synced": true
     },
     {
       "name": "consulter_devis",
       "meaning": "Consulter un devis fictif créé sur TEST; lecture seule.",
       "known_limits": "Ne pas confondre brouillon ou spécimen avec document officiel.",
       "human_test": "EN_ATTENTE",
-      "knowledge_db_synced": false
+      "knowledge_db_synced": true
     },
     {
       "name": "afficher_conversations",
       "meaning": "Affiche les archives propriétaire TEST, reprise au clic.",
       "known_limits": "Reprise orale nécessite redémarrage session; pas de changement automatique silencieux.",
       "human_test": "EN_ATTENTE",
-      "knowledge_db_synced": false
+      "knowledge_db_synced": true
     },
     {
       "name": "proposer_memoire",
       "meaning": "Ne propose qu'un souvenir à confirmer; ne sauvegarde jamais via l'outil vocal.",
       "known_limits": "Pas de données clients, secrets, préférences inventées. Test gestion des mémoires reporté.",
       "human_test": "EN_ATTENTE",
-      "knowledge_db_synced": false
+      "knowledge_db_synced": true
     }
   ],
   "security_attestations": {
@@ -78,11 +78,13 @@
     "rls_live_cross_owner_negative_test": "EN_ATTENTE",
     "no_public_secret_static_scan": "A_EXECUTER_EN_CI",
     "real_browser_mobile_tablet_test": "EN_ATTENTE",
-    "ci_before_pages_publish": "A_VERIFIER"
+    "ci_before_pages_publish": "VERIFIE_GITHUB_ACTIONS"
   },
   "acceptance_gate": {
     "manual_test_evidence_required": true,
     "knowledge_base_update_required": true,
     "official_integration_requires_anne_sophie_validation": true
-  }
+  },
+  "knowledge_sync_evidence": "Supabase TEST dchunxngtdbtgxbccmlb : 7 entrées uniques, un seul propriétaire, score 95, is_global=false, vérifié 2026-10-22",
+  "knowledge_source_migration": "GSTAI-Sp/speedarti-thibault@angel-v2/supabase/migrations/20261022_angel_v2_test_knowledge_base.sql"
 }
