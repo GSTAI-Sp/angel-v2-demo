@@ -72,5 +72,19 @@ if(manifest.completion_status==='TERMINE'){
  assert.equal(manifest.security_attestations.rls_live_cross_owner_negative_test,'VALIDE_HUMAIN');
  assert.equal(manifest.security_attestations.real_browser_mobile_tablet_test,'VALIDE_HUMAIN');
 }
+// Traçabilité de chaque livraison : refuse un commit non documenté à partir de ce sprint.
+assert.ok(fs.existsSync(path.join(root,'docs/angel-v2/CONVENTION_COMMITS.md')),
+  'Convention de commits absente');
+if(process.env.GITHUB_ACTIONS==='true'){
+ const {execFileSync}=require('node:child_process');
+ const message=execFileSync('git',['log','-1','--format=%B'],{cwd:root,encoding:'utf8'});
+ assert.ok(message.trim().length>=300,'Message commit trop court (300 caractères minimum)');
+ assert.match(message,/^(feat|fix|test|ci|security|docs|refactor|chore)\(angel-v2\):\s+.{12,}/m,
+   'Titre de commit non conforme : type(angel-v2): description');
+ for(const label of ['Contexte','Évolution','Tests','Risques','Raccordement']){
+   const re=new RegExp('^'+label+':\\s+.{25,}','m');
+   assert.match(message,re,'Rubrique de commit manquante/insuffisante : '+label);
+ }
+}
 console.log('PASS garde SpeedArti: CI→Pages, isolation TEST, empreintes des sources, connaissances, secrets, CSS mobile.');
 console.log('Statut du sprint:',manifest.completion_status,'; test humain:',manifest.manual_acceptance,'; savoir Ángel:',manifest.knowledge_sync_status);
