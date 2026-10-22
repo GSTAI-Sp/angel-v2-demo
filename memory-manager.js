@@ -3,7 +3,7 @@
 (() => {
 'use strict';
 const TEST_URL='https://dchunxngtdbtgxbccmlb.supabase.co';
-let key='',getToken=null,onChanged=null,root=null,list=null,status=null,filter=null,openBtn=null,rows=[],busy=false;
+let key='',getToken=null,onChanged=null,onBeforeChange=null,root=null,list=null,status=null,filter=null,openBtn=null,rows=[],busy=false;
 const labels={souvenir:'Souvenir',vocabulaire:'Vocabulaire métier',preference:'Préférence artisan'};
 function el(tag,text,className){
  const node=document.createElement(tag);
@@ -28,6 +28,14 @@ async function request(payload){
  return data;
 }
 function valueOf(row){return row.kind==='vocabulaire'?String(row.value||''):String(row.value||row.text||'');}
+function norm(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[.!?;:,]+$/g,'').replace(/\s+/g,' ').trim();}
+function inLive(data,row,content){
+ if(!data||data.environment!=='TEST'||data.read_only!==true)return false;
+ const target=norm(content);
+ if(row.kind==='souvenir')return (data.long_terme||[]).some(v=>norm(v.fait)===target);
+ if(row.kind==='vocabulaire')return (data.vocabulaire||[]).some(v=>norm(v.source)===norm(row.source)&&norm(v.cible)===target);
+ return (data.profile||[]).some(v=>v.categorie===row.category && norm(v.valeur?.texte)===target);
+}
 function render(){
  if(!list)return;
  list.replaceChildren();
@@ -72,12 +80,16 @@ function render(){
     }
     const before=rows.slice();
     busy=true;confirm.disabled=true;del.disabled=true;
+    let written=false;
     try {
-      await request({action:'update',kind:row.kind,id:row.id,
+      if(onBeforeChange)onBeforeChange();
+      const result=await request({action:'update',kind:row.kind,id:row.id,
         updated_at:row.updated_at??null,value:updated,confirm_update:true});
-      await refreshAfterWrite('✓ Mémoire corrigée sur Supabase TEST. Redémarre le micro pour actualiser Ángel.');
+      if(result.updated!==true)throw Error('Correction non confirmée par le serveur.');
+      written=true;
+      await refreshAfterWrite('update',row,updated);
     }catch(e){
-      rows=before;note('Correction non effectuée : '+e.message,true);
+      rows=before;note((written?'Correction enregistrée, mais vérification incomplète : ':'Correction non effectuée : ')+e.message,true);
     }finally{busy=false;confirm.disabled=false;del.disabled=false;}
   });
   del.addEventListener('click',async()=>{
@@ -85,27 +97,43 @@ function render(){
     const answer=window.confirm('Supprimer définitivement cette mémoire TEST ?\n\n'+String(row.text||'').slice(0,160));
     if(!answer)return;
     busy=true;del.disabled=true;edit.disabled=true;
+    let removed=false;
     try {
-      await request({action:'delete',kind:row.kind,id:row.id,
+      if(onBeforeChange)onBeforeChange();
+      const result=await request({action:'delete',kind:row.kind,id:row.id,
         updated_at:row.updated_at??null,confirm_delete:'SUPPRIMER'});
-      await refreshAfterWrite('✓ Mémoire supprimée de Supabase TEST. Redémarre le micro pour actualiser Ángel.');
-    }catch(e){note('Suppression non effectuée : '+e.message,true);}
+      if(result.deleted!==true)throw Error('Suppression non confirmée par le serveur.');
+      removed=true;
+      await refreshAfterWrite('delete',row,valueOf(row));
+    }catch(e){note((removed?'Suppression enregistrée, mais vérification incomplète : ':'Suppression non effectuée : ')+e.message,true);}
     finally{busy=false;del.disabled=false;edit.disabled=false;}
   });
   item.append(form);
   list.append(item);
  }
 }
-async function refreshAfterWrite(message){
- // La lecture des mémoires change sans redémarrer le navigateur.
- // Une session audio Gemini déjà ouverte conserve cependant son ancien contexte.
- let fail=null;
- try{if(onChanged)await onChanged();}
- catch(e){fail=e;}
- try{await refresh(true);}
- catch(e){fail=fail||e;}
- if(fail)note('Écriture effectuée, mais actualisation incomplète : '+fail.message,true);
- else note(message);
+async function refreshAfterWrite(action,row,content){
+ // Deux lectures distinctes et authentifiées : l'état en base, puis ce que
+ // Gemini recevra réellement au prochain démarrage. Aucun succès optimiste.
+ const stored=await request({action:'list'});
+ const entry=(stored.rows||[]).find(x=>x.id===row.id&&x.kind===row.kind);
+ const expected=action==='update'
+   ? Boolean(entry&&norm(valueOf(entry))===norm(content))
+   : !entry;
+ if(!expected)throw Error('La relecture des mémoires en base ne confirme pas le changement.');
+ const live=onChanged?await onChanged():null;
+ if(!live||live.environment!=='TEST'||live.read_only!==true)
+   throw Error('Ángel ne peut pas recharger les mémoires pour le moment.');
+ const present=inLive(live,row,content);
+ if(action==='update'&&!present)
+   throw Error('La correction existe en base mais n’est pas transmise à Ángel.');
+ if(action==='delete'&&present)
+   throw Error('Cette information apparaît encore dans les souvenirs actifs : vérifie les doublons.');
+ const refreshed=await refresh(true);
+ if(!refreshed)throw Error('Liste non actualisée.');
+ note(action==='update'
+   ? '✓ CORRECTION VÉRIFIÉE en base ET dans la mémoire d’Ángel. Redémarre le micro.'
+   : '✓ SUPPRESSION VÉRIFIÉE en base ET dans la mémoire d’Ángel. Redémarre le micro.');
 }
 async function refresh(force=false){
  if((busy&&!force)||!getToken?.())return false;
@@ -122,7 +150,7 @@ async function refresh(force=false){
 }
 function init(config){
  if(config.baseUrl!==TEST_URL)throw Error('Gestion mémoires TEST uniquement.');
- key=config.publicKey;getToken=config.getToken;onChanged=config.onChanged;
+ key=config.publicKey;getToken=config.getToken;onChanged=config.onChanged;onBeforeChange=config.onBeforeChange;
  const css=el('style');
  css.textContent='.angel-memory-manage{max-width:680px}.angel-memory-item{padding:16px 0;border-top:1px solid #dfe6ef}.angel-memory-item-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}.angel-memory-text{overflow-wrap:anywhere;white-space:pre-wrap;margin:8px 0}.angel-memory-edit{padding:14px;background:#f5f8fc;border:1px solid #dce7f4;border-radius:10px;margin:12px 0}.angel-memory-edit textarea{width:100%;box-sizing:border-box;min-height:85px;padding:10px;border:1px solid #cad8e5;border-radius:8px;font:inherit;color:#1e3251}.angel-memory-manage select{width:100%;max-width:360px;border:1px solid #d4dfed;padding:12px;border-radius:8px;background:white;color:#173459}.angel-memory-manage .actions{gap:10px;flex-wrap:wrap}.angel-memory-manage button{white-space:normal}@media(max-width:500px){.angel-memory-manage .angel-memory-item .actions button{flex:1;min-width:140px}}';
  document.head.append(css);
