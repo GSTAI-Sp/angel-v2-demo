@@ -8,12 +8,12 @@
   "production_approval": false,
   "completion_status": "BLOQUE_CONNAISSANCES",
   "last_review": "2026-10-22",
-  "review_reason": "Sprints 1, 2 et 3 codés sur dépôt TEST : consultations groupées, recherches avancées, préparation de rendez-vous et facture sans émission, briefing et suggestions. Les nouvelles fiches doivent être intégrées par Anne-Sophie; vérification humaine groupée et tests réels encore en attente.",
+  "review_reason": "Trois sprints en préparation TEST; consultations groupées, devis, préparation factures et rendez-vous, déplacement fictif soumis au clic, briefing non automatisé. Intégration des nouvelles fiches dans la base existante uniquement par Anne-Sophie. Démo non publiée.",
   "test_limitations": "Tests techniques GitHub à contrôler; les tests de mocks et revues de code ne remplacent pas les tests Gemini Live au micro, permissions HTTP JWT en comptes distincts ou validation mobile/tablette. Aucune sortie de production.",
   "changes_log": "docs/angel-v2/CHANGELOG_BROUILLON.md",
   "tracked_sources": {
-    "index.html": "bb769bdca8f0eaf6687af6c03086d6ca030dfae4",
-    "metier.js": "8d07068aac82c8e6c1d0b38682d63f38fe86b598",
+    "index.html": "4936436a0bd8d0efd73adc36917eba24f01480c5",
+    "metier.js": "f0eab646408ab41aabc3e933bb031963a22b9550",
     "transcript-preview.js": "aa7af9f52a79ffed70cbfbc684c6ef3ca7b22a04",
     "archive.js": "4a06fd1b297873cda254e02e48733336cccbe149",
     "memory.js": "b9e998b27de807fe3e1b7080afc7f4be0c234cbe",
@@ -120,6 +120,13 @@
       "known_limits": "Suggestions uniquement, aucun rappel programmé ni notification, montants et horaires provenant des tables métier propriétaire TEST.",
       "human_test": "EN_ATTENTE",
       "knowledge_db_synced": false
+    },
+    {
+      "name": "preparer_deplacement_rendez_vous",
+      "meaning": "Prépare sans l'appliquer le déplacement d'un rendez-vous strictement SPÉCIMEN, selon identifiant issu de la consultation agenda et créneaux fournis explicitement.",
+      "known_limits": "Confirmer et annuler sont réservés à l'interface humaine, la RPC verrouillée service_role TEST refuse les vrais contacts et toute collision.",
+      "human_test": "EN_ATTENTE",
+      "knowledge_db_synced": false
     }
   ],
   "security_attestations": {
@@ -152,11 +159,13 @@
   },
   "new_sprints": {
     "scope": "sprints 1, 2, 3",
-    "status": "PREPARE_NON_PUBLIE",
+    "status": "POUSSE_GIT_PRIVE_ET_PUBLIC_SOUS_VERROU",
     "known_knowledge_blocker": true,
     "production_integration": false,
     "live_voice_test": "EN_ATTENTE",
     "technical_ci": "A_VERIFIER",
-    "screenshots_mobile": "EN_ATTENTE"
+    "screenshots_mobile": "EN_ATTENTE",
+    "knowledge_blocker": true,
+    "real_client_records": "INTERDITS"
   }
 }
