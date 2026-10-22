@@ -2,7 +2,7 @@
 // Jamais de secrets serveur ici, aucun accès à SpeedArti production.
 (() => {
 'use strict';
-const allowed=new Set(['rechercher_client','rechercher_chantier','rechercher_catalogue','preparer_devis','consulter_devis','afficher_conversations','proposer_memoire','consulter_factures','consulter_rendez_vous','rechercher_devis','executer_plan_lecture','preparer_rendez_vous','preparer_facture','consulter_briefing']);
+const allowed=new Set(['rechercher_client','rechercher_chantier','rechercher_catalogue','preparer_devis','consulter_devis','afficher_conversations','proposer_memoire','consulter_factures','consulter_rendez_vous','rechercher_devis','executer_plan_lecture','preparer_rendez_vous','preparer_deplacement_rendez_vous','preparer_facture','consulter_briefing']);
 const toolDefs=[
  {name:'rechercher_client',description:'Recherche un client fictif SpeedArti. Sans nom, liste les clients. Utilise ce résultat pour identifier un client avant un devis.',parameters:{type:'OBJECT',properties:{nom:{type:'STRING',description:'Nom du client demandé (facultatif)'}}}},
  {name:'rechercher_chantier',description:'Consulte les chantiers fictifs, éventuellement filtrés par nom.',parameters:{type:'OBJECT',properties:{nom:{type:'STRING'}}}},
@@ -33,6 +33,12 @@ const toolDefs=[
  {name:'rechercher_devis',description:'Recherche les devis fictifs du compte par titre en lecture seule.',parameters:{type:'OBJECT',properties:{recherche:{type:'STRING'}}}},
  {name:'executer_plan_lecture',description:'Quand plusieurs consultations sont demandées en une phrase, exécute deux à cinq actions séquentielles en lecture seule. Jamais de préparation, confirmation, écriture ou suppression dans ce plan.',parameters:{type:'OBJECT',properties:{etapes:{type:'ARRAY',items:{type:'OBJECT',properties:{action:{type:'STRING',enum:['consulter_factures','consulter_rendez_vous','rechercher_client','rechercher_chantier','rechercher_catalogue','rechercher_devis','consulter_briefing']},args:{type:'OBJECT',description:'Paramètres de consultation selon outil'}},required:['action']}}},required:['etapes']}},
  {name:'preparer_rendez_vous',description:'Prépare un rendez-vous SPÉCIMEN sans le créer. L’artisan doit cliquer sur le bouton de confirmation dans la page pour le créer.',parameters:{type:'OBJECT',properties:{titre:{type:'STRING'},date:{type:'STRING',description:'AAAA-MM-JJ'},heure_debut:{type:'STRING',description:'HH:MM 24 h'},heure_fin:{type:'STRING',description:'HH:MM 24 h'}},required:['titre','date','heure_debut','heure_fin']}},
+ {name:'preparer_deplacement_rendez_vous',description:'Prépare une modification d’horaire d’un rendez-vous strictement SPÉCIMEN TEST. L’artisan doit ensuite confirmer par clic; aucun autre RDV ni contact réel n’est modifiable.',parameters:{type:'OBJECT',properties:{
+    rendez_vous_id:{type:'STRING',description:'Identifiant obtenu par consulter_rendez_vous'},
+    date:{type:'STRING',description:'Nouvelle date AAAA-MM-JJ'},
+    heure_debut:{type:'STRING',description:'HH:MM'},
+    heure_fin:{type:'STRING',description:'HH:MM'}
+  },required:['rendez_vous_id','date','heure_debut','heure_fin']}},
  {name:'preparer_facture',description:'Produit seulement un aperçu fictif NON enregistré. Requiert HT, TVA et TTC explicitement fournis; aucun prix inventé, aucune émission ou envoi.',parameters:{type:'OBJECT',properties:{titre:{type:'STRING'},montant_ht:{type:'NUMBER'},montant_tva:{type:'NUMBER'},montant_ttc:{type:'NUMBER'}},required:['titre','montant_ht','montant_tva','montant_ttc']}},
  {name:'consulter_briefing',description:'Donne les factures échues et rendez-vous proches fictifs, puis des suggestions factuelles sans créer de rappel.',parameters:{type:'OBJECT',properties:{}}},
  {name:'afficher_conversations',description:'Quand l’artisan dit « reprendre une conversation », « mes anciennes conversations » ou « retrouver mon historique », affiche immédiatement les archives dans la page. La reprise ne se fait ensuite que par le bouton Reprendre affiché à l’artisan. Ne prétends pas avoir ouvert le fil toi-même.',parameters:{type:'OBJECT',properties:{}}},
@@ -181,12 +187,12 @@ function renderQuote(data){
   container.hidden=false;
   $('angel-business-pending').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
-function renderAppointment(data){
+function renderAppointment(data,isMove=false){
   if(!data.context_id||!data.resume)return;
-  pending=data.context_id;pendingType='rendez_vous';
+  pending=data.context_id;pendingType=isMove?'deplacement':'rendez_vous';
   const v=data.resume;
-  $('angel-business-pending-title').textContent='Rendez-vous TEST à confirmer';
-  $('angel-business-confirm').textContent='Confirmer ce rendez-vous fictif';
+  $('angel-business-pending-title').textContent=isMove?'Déplacement du rendez-vous TEST':'Rendez-vous TEST à confirmer';
+  $('angel-business-confirm').textContent=isMove?'Confirmer le déplacement fictif':'Confirmer ce rendez-vous fictif';
   $('angel-business-preview').textContent='SPÉCIMEN — '+v.titre+'\nDate : '+v.date+
     '\nDe '+v.heure_debut+' à '+v.heure_fin+' (heure de Paris)\nProposition NON créée.';
   $('angel-business-pending').hidden=false;container.hidden=false;
@@ -239,6 +245,14 @@ function render(action,data){
   }else if(action==='preparer_rendez_vous'){
     renderAppointment(data);
     info('Rendez-vous TEST préparé et NON créé. Vérifie puis clique sur confirmer.');
+  }else if(action==='preparer_deplacement_rendez_vous'){
+    renderAppointment(data,true);
+    info('Déplacement préparé, NON appliqué. Seul un clic humain peut le valider.');
+  }else if(action==='confirmer_deplacement_rendez_vous'){
+    info('Rendez-vous SPÉCIMEN déplacé après clic : '+String(data.rendez_vous?.date||'')+
+      ' à '+String(data.rendez_vous?.heure_debut||'')+'.');
+  }else if(action==='annuler_deplacement_rendez_vous'){
+    info('Déplacement annulé sans changement.');
   }else if(action==='confirmer_rendez_vous'){
     info('Rendez-vous TEST créé après clic : '+String(data.rendez_vous?.titre||'')+' — '+String(data.rendez_vous?.date||''));
   }else if(action==='annuler_rendez_vous'){
@@ -292,7 +306,9 @@ async function confirm(){
   busy=true;$('angel-business-confirm').disabled=true;$('angel-business-cancel').disabled=true;
   try{
     const type=pendingType;
-    const resp=await call(type==='rendez_vous'?'confirmer_rendez_vous':'confirmer_devis',{context_id:pending,confirmation:true});
+    const action=type==='deplacement'?'confirmer_deplacement_rendez_vous':
+      type==='rendez_vous'?'confirmer_rendez_vous':'confirmer_devis';
+    const resp=await call(action,{context_id:pending,confirmation:true});
     const doc=resp.result?.devis_id;
     pending=null;pendingType=null;$('angel-business-pending').hidden=true;
     if(type==='devis'&&doc)await call('consulter_devis',{devis_id:doc});
@@ -302,7 +318,8 @@ async function confirm(){
 async function cancel(){
   if(!pending||busy)return;
   const ctx=pending;busy=true;
-  try{await call(pendingType==='rendez_vous'?'annuler_rendez_vous':'annuler_devis',{context_id:ctx});
+  try{await call(pendingType==='deplacement'?'annuler_deplacement_rendez_vous':
+    pendingType==='rendez_vous'?'annuler_rendez_vous':'annuler_devis',{context_id:ctx});
     pending=null;pendingType=null;$('angel-business-pending').hidden=true;}
   catch(e){info('Impossible d’annuler : '+e.message,true);}
   finally{busy=false;}
