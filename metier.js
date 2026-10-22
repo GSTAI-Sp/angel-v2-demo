@@ -30,7 +30,7 @@ const toolDefs=[
     date:{type:'STRING',description:'Uniquement si filtre=date, date valide AAAA-MM-JJ, sans inventer'}
   }}},
 
- {name:'rechercher_devis',description:'Recherche les devis fictifs du compte par titre en lecture seule.',parameters:{type:'OBJECT',properties:{recherche:{type:'STRING'}}}},
+ {name:'rechercher_devis',description:'Pour « retrouve mes devis », « liste tous mes devis », « combien de devis » et « donne-moi les montants de mes devis » : APPELER cet outil immédiatement sans exiger de nom de client, numéro ni titre. Sans recherche, renvoie toute la liste de devis TEST du compte avec montants TTC. Si la liste est vide, dire qu’aucun devis TEST n’est présent.',parameters:{type:'OBJECT',properties:{recherche:{type:'STRING'}}}},
  {name:'executer_plan_lecture',description:'Quand plusieurs consultations sont demandées en une phrase, exécute deux à cinq actions séquentielles en lecture seule. Jamais de préparation, confirmation, écriture ou suppression dans ce plan.',parameters:{type:'OBJECT',properties:{etapes:{type:'ARRAY',items:{type:'OBJECT',properties:{action:{type:'STRING',enum:['consulter_factures','consulter_rendez_vous','rechercher_client','rechercher_chantier','rechercher_catalogue','rechercher_devis','consulter_briefing']},args:{type:'OBJECT',description:'Paramètres adaptés à la consultation demandée',properties:{
         filtre:{type:'STRING'},date:{type:'STRING'},recherche:{type:'STRING'},
         nom:{type:'STRING'},query:{type:'STRING'},
@@ -83,6 +83,10 @@ function info(message,isError=false){
   if(resultBox){resultBox.textContent=message;resultBox.classList.toggle('business-error',isError);}
 }
 function validMoney(n){return typeof n==='number'&&Number.isFinite(n)?n.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €':'—';}
+function diagnostic(message){
+  const target=$('angel-business-diagnostic');
+  if(target)target.textContent=message;
+}
 function buildUI(){
   container=el('section','','card angel-business');container.id='angel-business-panel';container.hidden=true;
   container.innerHTML=`
@@ -90,6 +94,7 @@ function buildUI(){
     <h2 style="margin:9px 0 4px">Ángel consulte les données métier</h2>
     <p class="muted">Essaie « mes factures en attente », « mes rendez-vous aujourd’hui » ou « mon prochain rendez-vous ». Consultations en lecture seule sur les données fictives TEST, sans émission, modification ni envoi.</p>
     <div id="angel-business-status" class="output" role="status" aria-live="polite">Connecte-toi pour interroger la base de test.</div>
+    <p id="angel-business-diagnostic" class="muted" role="status" aria-live="polite">Dernier outil vocal : aucun appel enregistré.</p>
     <div id="angel-business-pending" class="quote-box" hidden>
       <h2 id="angel-business-pending-title">Action fictive en attente de confirmation</h2>
       <div id="angel-business-preview" class="quote-line"></div>
@@ -107,7 +112,7 @@ function buildUI(){
         <button class="secondary" id="angel-find-invoices" type="button">Consulter les factures TEST</button>
         <button class="secondary" id="angel-find-appointments" type="button">Rendez-vous du jour</button>
         <button class="secondary" id="angel-find-next-appointment" type="button">Prochain rendez-vous</button>
-        <button class="secondary" id="angel-find-devis" type="button">Rechercher les devis</button>
+        <button class="secondary" id="angel-find-devis" type="button">Lister tous mes devis TEST</button>
         <button class="secondary" id="angel-briefing" type="button">Briefing du jour</button>
         <button class="secondary" id="angel-plan-lecture" type="button">Tester 3 consultations</button>
       </div>
@@ -236,8 +241,13 @@ function render(action,data){
         ' — '+String(row.titre||'Rendez-vous')).join('\n'):
         'Aucun rendez-vous correspondant dans le compte TEST.'));
   }else if(action==='rechercher_devis'){
-    const items=data.devis||[];
-    info('DEVIS TEST ('+items.length+') :\n'+(items.map(d=>String(d.titre)+' — '+validMoney(Number(d.montant_ttc))+' TTC').join('\n')||'Aucun devis.'));
+    if(data.fictif!==true||data.lecture_seule!==true||!Array.isArray(data.devis))
+      throw new Error('Liste de devis non conforme au compte TEST.');
+    const items=data.devis;
+    info('DEVIS TEST ('+items.length+') :\n'+(items.map(d=>
+      String(d.titre||'Sans titre')+' — '+validMoney(Number(d.montant_ttc))+' TTC'+
+      ' — '+String(d.statut||'statut inconnu')).join('\n')||'Aucun devis dans ce compte TEST.'));
+    if(container)container.hidden=false;
   }else if(action==='executer_plan_lecture'){
     const steps=Array.isArray(data.etapes)?data.etapes:[];
     info('CONSULTATIONS GROUPÉES ('+steps.length+') :\n'+steps.map((e,i)=>
@@ -333,6 +343,7 @@ async function toolCall(calls){
   for(const fc of calls){
     const action=String(fc.name||''),args=(fc.args&&typeof fc.args==='object'&&!Array.isArray(fc.args))?fc.args:{};
     let reply;
+    diagnostic('Dernier outil vocal demandé : '+(allowed.has(action)?action:'outil refusé')+'.');
     if(!allowed.has(action))reply={error:'Cet outil vocal est interdit dans la démonstration.'};
     else{
       try{
@@ -348,6 +359,22 @@ async function toolCall(calls){
   }
   const ws=getSocket?.();
   if(ws && ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({toolResponse:{functionResponses:responses}}));
+}
+// Filet de sécurité ciblé : si Gemini refuse à tort de lister les devis
+// après une demande explicite, lire la vraie base TEST au lieu de répéter une impossibilité.
+const cleanTitle=v=>String(v||'Sans titre').replace(/[\r\n<>\\]/g,' ').slice(0,100);
+async function recoverDevisRefusal(){
+  diagnostic('Réponse vocale incorrecte détectée : lecture directe des devis TEST…');
+  const data=await call('rechercher_devis',{});
+  if(data.lecture_seule!==true||data.fictif!==true||!Array.isArray(data.devis))
+    throw new Error('Résultat TEST invalide : correction vocale annulée.');
+  const list=data.devis.slice(0,30);
+  const summary=list.length
+    ?list.map(d=>cleanTitle(d.titre)+' : '+validMoney(Number(d.montant_ttc))+
+      ' TTC, statut '+cleanTitle(d.statut)).join('; ')
+    :'Aucun devis enregistré dans le compte TEST.';
+  diagnostic('Lecture corrective réussie : '+list.length+' devis TEST trouvés. Correction vocale demandée.');
+  return {summary,count:list.length};
 }
 function init(ctx){
   baseUrl=ctx.baseUrl;pubKey=ctx.publicKey;getToken=ctx.getToken;getSocket=ctx.getSocket;notify=ctx.notify||null;
@@ -367,5 +394,5 @@ function hide(){
   pending=null;pendingType=null;$('angel-business-pending').hidden=true;info('Session terminée.');
   if(clientSelect)clientSelect.replaceChildren();
 }
-window.AngelBusinessDemo={init,show,hide,toolCall,toolDefs};
+window.AngelBusinessDemo={init,show,hide,toolCall,toolDefs,recoverDevisRefusal};
 })();
