@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "scope": "DEMO_TEST_SEULEMENT",
+  "source_of_truth": "GSTAI-Sp/speedarti-thibault@angel-v2, démonstration GSTAI-Sp/angel-v2-demo@main",
+  "knowledge_base_existing": "public.knowledge_base (Supabase TEST), ne pas créer de base parallèle",
+  "knowledge_sync_status": "A_VERIFIER_DANS_BASE_EXISTANTE",
+  "manual_acceptance": "EN_ATTENTE",
+  "production_approval": false,
+  "completion_status": "EN_COURS",
+  "last_review": "2026-10-22",
+  "review_reason": "Application des règles SpeedArti 09/10/2026, contrôle à chaque modification des fichiers de comportement.",
+  "test_limitations": "Les tests CLI et mocks ne remplacent pas tests humains, réseau en situation réelle, sécurité inter-comptes ni mobile/tablette.",
+  "changes_log": "docs/angel-v2/CHANGELOG_BROUILLON.md",
+  "tracked_sources": {
+    "index.html": "078a6fcd51ecf94badde72dcf95ccee978d35047",
+    "metier.js": "13eb3b7f0b4d368787979b602f7c938484cf407e",
+    "transcript-preview.js": "aa7af9f52a79ffed70cbfbc684c6ef3ca7b22a04",
+    "archive.js": "d1f9ecc0cc4f6b70efa747d3efb94d86d0daa28b",
+    "memory.js": "b9e998b27de807fe3e1b7080afc7f4be0c234cbe",
+    "memory-learn.js": "5f1fe4aaeebb6fcfa2c3ea4e097a0db9331a3c61",
+    "memory-manager.js": "66a5443a59d094cf6eddca0a1df7c8e0e99df5e9",
+    "memory-intent.js": "2e9c6785329b6e248b306021b385bfe2e08e8553",
+    "auto-memory.js": "c197cdc97612073f5c39c1369d89e144df5332b9"
+  },
+  "tools": [
+    {
+      "name": "rechercher_client",
+      "meaning": "Clients fictifs autorisés uniquement; recherche bornée; zéro exposition d'un autre artisan.",
+      "known_limits": "Réseau, absence de client, contrôle propriétaire.",
+      "human_test": "EN_ATTENTE",
+      "knowledge_db_synced": false
+    },
+    {
+      "name": "rechercher_chantier",
+      "meaning": "Liste des chantiers fictifs autorisés TEST; lecture seule.",
+      "known_limits": "Absence de chantiers, contrôle propriétaire.",
+      "human_test": "EN_ATTENTE",
+      "knowledge_db_synced": false
+    },
+    {
+      "name": "rechercher_catalogue",
+      "meaning": "Catalogue TEST et prix réellement présents, aucune référence ou TVA inventée.",
+      "known_limits": "Catalogue vide et absence de prix.",
+      "human_test": "EN_ATTENTE",
+      "knowledge_db_synced": false
+    },
+    {
+      "name": "preparer_devis",
+      "meaning": "Brouillon fictif uniquement; prix, quantités, unités, TVA explicites; confirmation humaine.",
+      "known_limits": "Validation humaine obligatoire, pas d'envoi.",
+      "human_test": "EN_ATTENTE",
+      "knowledge_db_synced": false
+    },
+    {
+      "name": "consulter_devis",
+      "meaning": "Consulter un devis fictif créé sur TEST; lecture seule.",
+      "known_limits": "Ne pas confondre brouillon ou spécimen avec document officiel.",
+      "human_test": "EN_ATTENTE",
+      "knowledge_db_synced": false
+    },
+    {
+      "name": "afficher_conversations",
+      "meaning": "Affiche les archives propriétaire TEST, reprise au clic.",
+      "known_limits": "Reprise orale nécessite redémarrage session; pas de changement automatique silencieux.",
+      "human_test": "EN_ATTENTE",
+      "knowledge_db_synced": false
+    },
+    {
+      "name": "proposer_memoire",
+      "meaning": "Ne propose qu'un souvenir à confirmer; ne sauvegarde jamais via l'outil vocal.",
+      "known_limits": "Pas de données clients, secrets, préférences inventées. Test gestion des mémoires reporté.",
+      "human_test": "EN_ATTENTE",
+      "knowledge_db_synced": false
+    }
+  ],
+  "security_attestations": {
+    "owner_filter_review": "FAIT_CODE",
+    "rls_live_cross_owner_negative_test": "EN_ATTENTE",
+    "no_public_secret_static_scan": "A_EXECUTER_EN_CI",
+    "real_browser_mobile_tablet_test": "EN_ATTENTE",
+    "ci_before_pages_publish": "A_VERIFIER"
+  },
+  "acceptance_gate": {
+    "manual_test_evidence_required": true,
+    "knowledge_base_update_required": true,
+    "official_integration_requires_anne_sophie_validation": true
+  }
+}
