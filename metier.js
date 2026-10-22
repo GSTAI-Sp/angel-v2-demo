@@ -31,7 +31,11 @@ const toolDefs=[
   }}},
 
  {name:'rechercher_devis',description:'Recherche les devis fictifs du compte par titre en lecture seule.',parameters:{type:'OBJECT',properties:{recherche:{type:'STRING'}}}},
- {name:'executer_plan_lecture',description:'Quand plusieurs consultations sont demandées en une phrase, exécute deux à cinq actions séquentielles en lecture seule. Jamais de préparation, confirmation, écriture ou suppression dans ce plan.',parameters:{type:'OBJECT',properties:{etapes:{type:'ARRAY',items:{type:'OBJECT',properties:{action:{type:'STRING',enum:['consulter_factures','consulter_rendez_vous','rechercher_client','rechercher_chantier','rechercher_catalogue','rechercher_devis','consulter_briefing']},args:{type:'OBJECT',description:'Paramètres de consultation selon outil'}},required:['action']}}},required:['etapes']}},
+ {name:'executer_plan_lecture',description:'Quand plusieurs consultations sont demandées en une phrase, exécute deux à cinq actions séquentielles en lecture seule. Jamais de préparation, confirmation, écriture ou suppression dans ce plan.',parameters:{type:'OBJECT',properties:{etapes:{type:'ARRAY',items:{type:'OBJECT',properties:{action:{type:'STRING',enum:['consulter_factures','consulter_rendez_vous','rechercher_client','rechercher_chantier','rechercher_catalogue','rechercher_devis','consulter_briefing']},args:{type:'OBJECT',description:'Paramètres adaptés à la consultation demandée',properties:{
+        filtre:{type:'STRING'},date:{type:'STRING'},recherche:{type:'STRING'},
+        nom:{type:'STRING'},query:{type:'STRING'},
+        montant_min:{type:'NUMBER'},montant_max:{type:'NUMBER'}
+      }}},required:['action']}}},required:['etapes']}},
  {name:'preparer_rendez_vous',description:'Prépare un rendez-vous SPÉCIMEN sans le créer. L’artisan doit cliquer sur le bouton de confirmation dans la page pour le créer.',parameters:{type:'OBJECT',properties:{titre:{type:'STRING'},date:{type:'STRING',description:'AAAA-MM-JJ'},heure_debut:{type:'STRING',description:'HH:MM 24 h'},heure_fin:{type:'STRING',description:'HH:MM 24 h'}},required:['titre','date','heure_debut','heure_fin']}},
  {name:'preparer_deplacement_rendez_vous',description:'Prépare une modification d’horaire d’un rendez-vous strictement SPÉCIMEN TEST. L’artisan doit ensuite confirmer par clic; aucun autre RDV ni contact réel n’est modifiable.',parameters:{type:'OBJECT',properties:{
     rendez_vous_id:{type:'STRING',description:'Identifiant obtenu par consulter_rendez_vous'},
