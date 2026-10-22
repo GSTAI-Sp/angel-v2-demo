@@ -73,7 +73,7 @@ jobs:
           assert len(js) > 2500
           Path("/tmp/angel-v2-client.js").write_text(js, encoding="utf8")
           PY
-      - name: Vérifier les sept scripts JavaScript et le détecteur vocal
+      - name: Bloquer toute régression et publier uniquement après succès
         run: |
           node --check /tmp/angel-v2-client.js
           node --check metier.js
@@ -83,6 +83,9 @@ jobs:
           node --check memory-learn.js
           node --check memory-manager.js
           node --check memory-intent.js
+          node --check auto-memory.js
           node memory-intent.test.cjs
+          node auto-memory.test.cjs
           node memory-ui.test.cjs
           node memory-manager.test.cjs
+          node scripts/quality-gate.cjs
