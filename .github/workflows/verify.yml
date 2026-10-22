@@ -76,6 +76,11 @@ jobs:
           for required_tool in ["executer_plan_lecture", "preparer_rendez_vous", "preparer_deplacement_rendez_vous", "preparer_facture", "consulter_briefing", "rechercher_devis"]:
               assert ("{name:'" + required_tool + "'") in tool_section, "Outil prévu manquant : " + required_tool
           assert "La modification ne se fait qu'après clic sur Confirmer." in html
+          assert "RÈGLE PRIORITAIRE DE LA DÉMO TEST" in html
+          assert "correctDevisAfterRefusal" in html
+          assert "recoverDevisRefusal" in metier
+          assert "Dernier outil vocal" in metier
+          assert "Lister tous mes devis TEST" in metier
           assert len(js) > 2500
           Path("/tmp/angel-v2-client.js").write_text(js, encoding="utf8")
           PY
@@ -94,4 +99,5 @@ jobs:
           node auto-memory.test.cjs
           node memory-ui.test.cjs
           node memory-manager.test.cjs
+          node devis-voice-guard.test.cjs
           node scripts/quality-gate.cjs
