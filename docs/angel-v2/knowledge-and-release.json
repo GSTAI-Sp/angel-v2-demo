@@ -8,12 +8,12 @@
   "production_approval": false,
   "completion_status": "EN_ATTENTE_TESTS_HUMAINS",
   "last_review": "2026-10-22",
-  "review_reason": "Correction du test vocal 4 : toute demande de liste des devis sans consultation effective déclenche une lecture en compte TEST et un affichage des montants. Le résultat oral réel reste non validé.",
-  "test_limitations": "Les tests automatiques ne remplacent pas une session microphone réelle. Les données des devis sont limitées au compte Supabase TEST.",
+  "review_reason": "Lot des tests vocaux 5/6/7 : préparation d’un rendez-vous fictif daté, proposition de déplacement conservant la durée réelle d’un seul RDV identifié, et aperçu de facture HT/TVA/TTC sans émission. Secours vocal lorsque Gemini ne choisit pas l’outil, confirmation exclusivement par clic. Trois fiches métier actualisées directement dans Supabase TEST et vérifiées.",
+  "test_limitations": "Tests automatiques navigateur simulé et métier SQL; aucun appel Gemini Live réel ni validation humaine du test 5/6/7 encore déclaré. Le déplacement nécessite un rendez-vous SPÉCIMEN identifié sans ambiguïté; la création et le déplacement passent par un bouton humain. L’aperçu de facture ne crée aucun document.",
   "changes_log": "docs/angel-v2/CHANGELOG_BROUILLON.md",
   "tracked_sources": {
-    "index.html": "16105c21c4458229181d50885a5080fe83aaac35",
-    "metier.js": "a9f02f26958b1cc6a620a1fae91ddc6f948d6304",
+    "index.html": "e312aee47710eb9aa96071321c43a89cd8a92e05",
+    "metier.js": "840a28ba5fbbd175ba77772d9af610e4c9c2078e",
     "transcript-preview.js": "aa7af9f52a79ffed70cbfbc684c6ef3ca7b22a04",
     "archive.js": "4a06fd1b297873cda254e02e48733336cccbe149",
     "memory.js": "b9e998b27de807fe3e1b7080afc7f4be0c234cbe",
@@ -103,14 +103,14 @@
     {
       "name": "preparer_rendez_vous",
       "meaning": "Prépare un rendez-vous fictif daté avec titre et horaires Europe/Paris; exige le clic humain avant création.",
-      "known_limits": "La proposition n'est pas le rendez-vous; validation atomique serveur limitée au compte TEST, expirant après vingt minutes, aucune notification.",
+      "known_limits": "Date et heures Europe/Paris strictes, titre dicté ou libellé fictif, contexte d'aperçu TEST; aucun rendez-vous avant confirmation manuelle et expiration après vingt minutes.",
       "human_test": "EN_ATTENTE",
       "knowledge_db_synced": true
     },
     {
       "name": "preparer_facture",
       "meaning": "Construit un aperçu purement descriptif à partir des montants HT, TVA et TTC fournis explicitement.",
-      "known_limits": "Aucun numéro, facture, paiement, relance ou e-mail créé; aucun prix ni règle de TVA deviné, émission future réservée au moteur officiel SpeedArti.",
+      "known_limits": "Les montants HT TVA et TTC sont obligatoires et vérifiés; titre de simulation SPÉCIMEN facultatif, statut NON_CREE, jamais de numéro, envoi, facture ou paiement.",
       "human_test": "EN_ATTENTE",
       "knowledge_db_synced": true
     },
@@ -124,7 +124,7 @@
     {
       "name": "preparer_deplacement_rendez_vous",
       "meaning": "Prépare sans l'appliquer le déplacement d'un rendez-vous strictement SPÉCIMEN, selon identifiant issu de la consultation agenda et créneaux fournis explicitement.",
-      "known_limits": "Confirmer et annuler sont réservés à l'interface humaine, la RPC verrouillée service_role TEST refuse les vrais contacts et toute collision.",
+      "known_limits": "Sélection unique par date et heure de départ, durée réelle conservée, ID propriétaire en TEST; exclusion des événements clients réels et clic manuel obligatoire avant modification.",
       "human_test": "EN_ATTENTE",
       "knowledge_db_synced": true
     }
@@ -141,7 +141,7 @@
     "knowledge_base_update_required": true,
     "official_integration_requires_explicit_owner_approval": true
   },
-  "knowledge_sync_evidence": "Supabase TEST dchunxngtdbtgxbccmlb, public.knowledge_base : 15 fiches distinctes contrôlées par SELECT après écriture transactionnelle le 22-10-2026 ; huit fiches nouvelles présentes (une fois chacune), 95 points, un seul propriétaire TEST, is_global=false.",
+  "knowledge_sync_evidence": "Supabase Ángel V2 TEST: quinze fiches déjà présentes; règles des trois outils preparer_rendez_vous, preparer_deplacement_rendez_vous et preparer_facture actualisées transactionnellement et revérifiées le 22 octobre 2026, is_global=false et score=95.",
   "knowledge_source_migration": "GSTAI-Sp/speedarti-thibault@angel-v2/supabase/migrations/20261022_angel_v2_test_knowledge_base.sql",
   "memory_reconciliation": {
     "backend": "angel-live-memory v2 TEST : mémoires triées par updated_at sans seuil importance",
@@ -159,11 +159,11 @@
   },
   "new_sprints": {
     "scope": "sprints 1, 2, 3",
-    "status": "TEST_4_CORRECTIF_EN_REVUE",
+    "status": "TESTS_5_6_7_PREPARES_CI_EN_COURS",
     "known_knowledge_blocker": false,
     "production_integration": false,
-    "live_voice_test": "NON_VALIDE",
-    "technical_ci": "A_VERIFIER_SUR_CE_COMMIT",
+    "live_voice_test": "5_6_7_EN_ATTENTE",
+    "technical_ci": "EN_ATTENTE_DERNIER_COMMIT",
     "screenshots_mobile": "EN_ATTENTE",
     "knowledge_blocker": false,
     "real_client_records": "INTERDITS"
