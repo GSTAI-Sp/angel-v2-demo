@@ -8,12 +8,12 @@
   "production_approval": false,
   "completion_status": "BLOQUE_CONNAISSANCES",
   "last_review": "2026-10-22",
-  "review_reason": "Factures et agenda en lecture seule codés sur TEST, connaissances des deux nouveaux outils en attente d'application par Anne-Sophie dans la base Ángel existante, tests humains non exécutés.",
-  "test_limitations": "Les tests CLI et mocks ne remplacent pas tests humains, réseau en situation réelle, sécurité inter-comptes ni mobile/tablette.",
+  "review_reason": "Sprints 1, 2 et 3 codés sur dépôt TEST : consultations groupées, recherches avancées, préparation de rendez-vous et facture sans émission, briefing et suggestions. Les nouvelles fiches doivent être intégrées par Anne-Sophie; vérification humaine groupée et tests réels encore en attente.",
+  "test_limitations": "Tests techniques GitHub à contrôler; les tests de mocks et revues de code ne remplacent pas les tests Gemini Live au micro, permissions HTTP JWT en comptes distincts ou validation mobile/tablette. Aucune sortie de production.",
   "changes_log": "docs/angel-v2/CHANGELOG_BROUILLON.md",
   "tracked_sources": {
-    "index.html": "849dfaac36d49ac111351b3209e3e4e046a21b08",
-    "metier.js": "a5c870ec0ee07a144f93baf760c500f28e4e6878",
+    "index.html": "bb769bdca8f0eaf6687af6c03086d6ca030dfae4",
+    "metier.js": "8d07068aac82c8e6c1d0b38682d63f38fe86b598",
     "transcript-preview.js": "aa7af9f52a79ffed70cbfbc684c6ef3ca7b22a04",
     "archive.js": "4a06fd1b297873cda254e02e48733336cccbe149",
     "memory.js": "b9e998b27de807fe3e1b7080afc7f4be0c234cbe",
@@ -75,14 +75,49 @@
     {
       "name": "consulter_factures",
       "meaning": "Lecture seule factures TEST du compte connecté : statuts, échéances et montants enregistrés; aucun calcul financier ni émission.",
-      "known_limits": "Aucun document TEST actuellement ; les statuts et soldes incomplets sont explicités, aucune relance ni modification.",
-      "human_test": "EN_ATTENTE",
+      "known_limits": "Fixtures factures TEST créées et contrôlées; filtrage par titre, numéro, montants explicites; aucune émission ni modification autorisée.",
+      "human_test": "VALIDE_HUMAIN",
       "knowledge_db_synced": false
     },
     {
       "name": "consulter_rendez_vous",
       "meaning": "Lecture seule rendez-vous TEST du propriétaire, filtres de dates et heures civiles Europe/Paris ; aucune création ou changement.",
-      "known_limits": "Agenda TEST vide actuellement ; horaires sans timezone propre dans la table, test vocal et client mobile à réaliser.",
+      "known_limits": "Trois rendez-vous TEST créés et contrôlés, dates relatives aux essais du 22 octobre 2026; aucune notification ni modification vocale directe.",
+      "human_test": "VALIDE_HUMAIN",
+      "knowledge_db_synced": false
+    },
+    {
+      "name": "rechercher_devis",
+      "meaning": "Recherche bornée de devis réels de démonstration sur compte propriétaire TEST, jamais création ou modification.",
+      "known_limits": "Recherche par titre et limite de résultats ; ne lit que les devis d'origine TEST.",
+      "human_test": "EN_ATTENTE",
+      "knowledge_db_synced": false
+    },
+    {
+      "name": "executer_plan_lecture",
+      "meaning": "Exécute dans l'ordre deux à cinq consultations strictement en lecture seule demandées dans une même phrase.",
+      "known_limits": "Plan ne peut jamais contenir une action de création, préparation, paiement, confirmation ou suppression; arrête l'enchaînement à la première erreur.",
+      "human_test": "EN_ATTENTE",
+      "knowledge_db_synced": false
+    },
+    {
+      "name": "preparer_rendez_vous",
+      "meaning": "Prépare un rendez-vous fictif daté avec titre et horaires Europe/Paris; exige le clic humain avant création.",
+      "known_limits": "La proposition n'est pas le rendez-vous; validation atomique serveur limitée au compte TEST, expirant après vingt minutes, aucune notification.",
+      "human_test": "EN_ATTENTE",
+      "knowledge_db_synced": false
+    },
+    {
+      "name": "preparer_facture",
+      "meaning": "Construit un aperçu purement descriptif à partir des montants HT, TVA et TTC fournis explicitement.",
+      "known_limits": "Aucun numéro, facture, paiement, relance ou e-mail créé; aucun prix ni règle de TVA deviné, émission future réservée au moteur officiel SpeedArti.",
+      "human_test": "EN_ATTENTE",
+      "knowledge_db_synced": false
+    },
+    {
+      "name": "consulter_briefing",
+      "meaning": "Résume les factures fictives échues et les prochains rendez-vous TEST et propose des priorités factuelles.",
+      "known_limits": "Suggestions uniquement, aucun rappel programmé ni notification, montants et horaires provenant des tables métier propriétaire TEST.",
       "human_test": "EN_ATTENTE",
       "knowledge_db_synced": false
     }
@@ -108,11 +143,20 @@
     "human": "NON_VALIDE"
   },
   "new_knowledge_migration": "GSTAI-Sp/speedarti-thibault@angel-v2/supabase/migrations/20261022_angel_v2_test_readonly_tools_knowledge.sql",
-  "new_knowledge_owner": "Anne-Sophie uniquement : migration NON APPLIQUÉE par l'assistant",
+  "new_knowledge_owner": "Anne-Sophie uniquement : ne jamais appliquer les notices par ce développement",
   "readonly_invoice_appointments": {
-    "status": "CODE_POUSSE_TESTS_EN_ATTENTE",
-    "seed": "Aucune facture persistante insérée : triggers de numérotation et écritures comptables identifiés.",
-    "backend": "TEST seul, filtrage JWT/propriétaire/TEST, aucun outil d'écriture nouveau",
-    "human": "EN_ATTENTE"
+    "status": "DONNEES_TEST_CREES_SQL_VERIFIEES_ATTENTE_NOUVELLE_DEMO",
+    "seed": "Deux factures et trois rendez-vous SPÉCIMEN persistés dans Supabase TEST le 22/10/2026; aucun écrit comptable pour les factures",
+    "backend": "Filtrage JWT propriétaire, environnement TEST, lecture seule; nouvelles actions sécurisées testées en CI",
+    "human": "PASS oral initial selon retour utilisateur du 22/10/2026, nouveaux outils groupés non encore testés"
+  },
+  "new_sprints": {
+    "scope": "sprints 1, 2, 3",
+    "status": "PREPARE_NON_PUBLIE",
+    "known_knowledge_blocker": true,
+    "production_integration": false,
+    "live_voice_test": "EN_ATTENTE",
+    "technical_ci": "A_VERIFIER",
+    "screenshots_mobile": "EN_ATTENTE"
   }
 }
