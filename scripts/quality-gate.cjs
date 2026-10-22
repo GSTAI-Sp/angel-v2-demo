@@ -65,6 +65,16 @@ for(const item of entries){
  assert.ok(['EN_ATTENTE','VALIDE_HUMAIN'].includes(item.human_test),'Statut humain incohérent');
  assert.equal(typeof item.knowledge_db_synced,'boolean','Statut connaissance invalide');
 }
+// Blocage obligatoire des nouveaux outils tant que leur fiche n'est pas
+// réellement intégrée dans la base de connaissances existante par Anne-Sophie.
+const missingKnowledge=entries.filter(x=>!x.knowledge_db_synced);
+if(missingKnowledge.length){
+ assert.equal(manifest.completion_status,'BLOQUE_CONNAISSANCES',
+   'Un outil non documenté dans la base Ángel interdit le statut de livraison');
+ throw new Error('PUBLICATION BLOQUÉE — Connaissances Ángel manquantes pour : '+
+   missingKnowledge.map(x=>x.name).join(', ')+
+   '. Faire valider la migration TEST par Anne-Sophie puis contrôler les enregistrements.');
+}
 if(manifest.completion_status==='TERMINE'){
  assert.equal(manifest.manual_acceptance,'VALIDE_HUMAIN');
  assert.equal(manifest.knowledge_sync_status,'VERIFIE_DANS_BASE_EXISTANTE');
