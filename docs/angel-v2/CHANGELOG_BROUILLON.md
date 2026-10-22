@@ -19,3 +19,12 @@ La démo n'est plus autorisée à publier un commit si les contrôles GitHub éc
 - Aucune facturation ni intégration administrative de production incluse.
 
 **Conditions pour intégration :** validateur humain + base Ángel mise à jour + tests mobiles + revue Annso + changelog brouillon réel de SpeedArti par l'équipe autorisée.
+
+## Correctif mémoire — 22 octobre 2026
+**Statut : brouillon TEST — test humain de réception encore en attente.**
+
+- Quand tu corriges un souvenir, Ángel doit maintenant utiliser sa dernière version après redémarrage du micro.
+- Les anciennes conversations restent accessibles, mais leurs déclarations sur la mémoire ne sont plus utilisées comme souvenirs actifs.
+- Une correction n'est indiquée « VÉRIFIÉE » que si la base de test **et** le lecteur réel d'Ángel donnent le même résultat. Idem pour la suppression.
+- Si une vérification échoue, le système affiche l'erreur au lieu de déclarer à tort que tout fonctionne.
+- Aucune modification de la production SpeedArti ; l'utilisateur doit refaire le test vocal après publication.
