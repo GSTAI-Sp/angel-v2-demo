@@ -70,6 +70,12 @@ jobs:
           assert 'tools:[{functionDeclarations:metier.toolDefs}]' in html
           assert 'metier.toolCall(data.toolCall.functionCalls)' in html
           assert "confirmer_devis" not in metier.split("const toolDefs=", 1)[1].split("const viewCSS=", 1)[0]
+          tool_section = metier.split("const toolDefs=", 1)[1].split("const viewCSS=", 1)[0]
+          for denied in ["confirmer_rendez_vous", "confirmer_deplacement_rendez_vous", "annuler_rendez_vous", "annuler_deplacement_rendez_vous"]:
+              assert denied not in tool_section, "Mutation rendez-vous interdite aux outils vocaux : " + denied
+          for required_tool in ["executer_plan_lecture", "preparer_rendez_vous", "preparer_deplacement_rendez_vous", "preparer_facture", "consulter_briefing", "rechercher_devis"]:
+              assert ("{name:'" + required_tool + "'") in tool_section, "Outil prévu manquant : " + required_tool
+          assert "La modification ne se fait qu'après clic sur Confirmer." in html
           assert len(js) > 2500
           Path("/tmp/angel-v2-client.js").write_text(js, encoding="utf8")
           PY
