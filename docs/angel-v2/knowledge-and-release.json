@@ -8,17 +8,17 @@
   "production_approval": false,
   "completion_status": "EN_COURS",
   "last_review": "2026-10-22",
-  "review_reason": "Application des règles SpeedArti 09/10/2026, contrôle à chaque modification des fichiers de comportement.",
+  "review_reason": "Incident réel : souvenir corrigé non rappelé ; lecture anciennement filtrée par importance, historique obsolète et confirmation optimiste corrigés. Nouvelle validation vocale requise.",
   "test_limitations": "Les tests CLI et mocks ne remplacent pas tests humains, réseau en situation réelle, sécurité inter-comptes ni mobile/tablette.",
   "changes_log": "docs/angel-v2/CHANGELOG_BROUILLON.md",
   "tracked_sources": {
-    "index.html": "078a6fcd51ecf94badde72dcf95ccee978d35047",
+    "index.html": "9fa469fa4c95b8ee953b3b11df563b263bedcbdf",
     "metier.js": "13eb3b7f0b4d368787979b602f7c938484cf407e",
     "transcript-preview.js": "aa7af9f52a79ffed70cbfbc684c6ef3ca7b22a04",
-    "archive.js": "d1f9ecc0cc4f6b70efa747d3efb94d86d0daa28b",
+    "archive.js": "4a06fd1b297873cda254e02e48733336cccbe149",
     "memory.js": "b9e998b27de807fe3e1b7080afc7f4be0c234cbe",
     "memory-learn.js": "5f1fe4aaeebb6fcfa2c3ea4e097a0db9331a3c61",
-    "memory-manager.js": "66a5443a59d094cf6eddca0a1df7c8e0e99df5e9",
+    "memory-manager.js": "0139cfa2aaa10da639f7dbc462c4d18e09d0f89c",
     "memory-intent.js": "2e9c6785329b6e248b306021b385bfe2e08e8553",
     "auto-memory.js": "c197cdc97612073f5c39c1369d89e144df5332b9"
   },
@@ -86,5 +86,11 @@
     "official_integration_requires_anne_sophie_validation": true
   },
   "knowledge_sync_evidence": "Supabase TEST dchunxngtdbtgxbccmlb : 7 entrées uniques, un seul propriétaire, score 95, is_global=false, vérifié 2026-10-22",
-  "knowledge_source_migration": "GSTAI-Sp/speedarti-thibault@angel-v2/supabase/migrations/20261022_angel_v2_test_knowledge_base.sql"
+  "knowledge_source_migration": "GSTAI-Sp/speedarti-thibault@angel-v2/supabase/migrations/20261022_angel_v2_test_knowledge_base.sql",
+  "memory_reconciliation": {
+    "backend": "angel-live-memory v2 TEST : mémoires triées par updated_at sans seuil importance",
+    "frontend": "read-after-write depuis manager+Live, arrêt micro avant changement, archives mnésiques exclues du contexte",
+    "ci": "memory-manager.test.cjs étendu",
+    "human": "NON_VALIDE"
+  }
 }
