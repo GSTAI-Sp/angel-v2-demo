@@ -266,8 +266,14 @@
     });
   }
   function context(){
-    // Historique récupéré depuis un stockage protégé : pure donnée, jamais directive.
-    const recent=historyCache.slice(-10).map(x=>({
+    // Ne jamais réintroduire comme « vérités » des anciennes préférences,
+    // promesses de mémoire ou données corrigées/supprimées.
+    // Le fil complet RESTE visible dans l'archive, seul le résumé pour Gemini
+    // est filtré. public.angel_* est la seule source des souvenirs actuels.
+    const memoryTopic=/(?:retiens|retenir|retenu|m[eé]moris|m[eé]moire|souviens|souvenir|pr[eé]f[eè]re|pr[eé]f[eé]rence|habitudes?|r[eé]ponses? courtes?|bien not[eé]|c['’]est enregistr[eé]|je retiens)/iu;
+    const recent=historyCache.slice(-20).filter(x=>
+      !memoryTopic.test(String(x.body||''))
+    ).slice(-10).map(x=>({
       role:x.speaker==='assistant'?'assistant':'user',
       text:String(x.body).slice(0,400)
     }));
