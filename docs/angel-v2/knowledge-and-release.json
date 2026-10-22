@@ -3,17 +3,17 @@
   "scope": "DEMO_TEST_SEULEMENT",
   "source_of_truth": "GSTAI-Sp/speedarti-thibault@angel-v2, démonstration GSTAI-Sp/angel-v2-demo@main",
   "knowledge_base_existing": "public.knowledge_base (Supabase TEST), ne pas créer de base parallèle",
-  "knowledge_sync_status": "VERIFIE_DANS_BASE_EXISTANTE",
+  "knowledge_sync_status": "EN_ATTENTE_NOUVEAUX_OUTILS",
   "manual_acceptance": "EN_ATTENTE",
   "production_approval": false,
-  "completion_status": "EN_COURS",
+  "completion_status": "BLOQUE_CONNAISSANCES",
   "last_review": "2026-10-22",
-  "review_reason": "Incident réel : souvenir corrigé non rappelé ; lecture anciennement filtrée par importance, historique obsolète et confirmation optimiste corrigés. Nouvelle validation vocale requise.",
+  "review_reason": "Factures et agenda en lecture seule codés sur TEST, connaissances des deux nouveaux outils en attente d'application par Anne-Sophie dans la base Ángel existante, tests humains non exécutés.",
   "test_limitations": "Les tests CLI et mocks ne remplacent pas tests humains, réseau en situation réelle, sécurité inter-comptes ni mobile/tablette.",
   "changes_log": "docs/angel-v2/CHANGELOG_BROUILLON.md",
   "tracked_sources": {
-    "index.html": "9fa469fa4c95b8ee953b3b11df563b263bedcbdf",
-    "metier.js": "13eb3b7f0b4d368787979b602f7c938484cf407e",
+    "index.html": "849dfaac36d49ac111351b3209e3e4e046a21b08",
+    "metier.js": "a5c870ec0ee07a144f93baf760c500f28e4e6878",
     "transcript-preview.js": "aa7af9f52a79ffed70cbfbc684c6ef3ca7b22a04",
     "archive.js": "4a06fd1b297873cda254e02e48733336cccbe149",
     "memory.js": "b9e998b27de807fe3e1b7080afc7f4be0c234cbe",
@@ -71,6 +71,20 @@
       "known_limits": "Pas de données clients, secrets, préférences inventées. Test gestion des mémoires reporté.",
       "human_test": "EN_ATTENTE",
       "knowledge_db_synced": true
+    },
+    {
+      "name": "consulter_factures",
+      "meaning": "Lecture seule factures TEST du compte connecté : statuts, échéances et montants enregistrés; aucun calcul financier ni émission.",
+      "known_limits": "Aucun document TEST actuellement ; les statuts et soldes incomplets sont explicités, aucune relance ni modification.",
+      "human_test": "EN_ATTENTE",
+      "knowledge_db_synced": false
+    },
+    {
+      "name": "consulter_rendez_vous",
+      "meaning": "Lecture seule rendez-vous TEST du propriétaire, filtres de dates et heures civiles Europe/Paris ; aucune création ou changement.",
+      "known_limits": "Agenda TEST vide actuellement ; horaires sans timezone propre dans la table, test vocal et client mobile à réaliser.",
+      "human_test": "EN_ATTENTE",
+      "knowledge_db_synced": false
     }
   ],
   "security_attestations": {
@@ -92,5 +106,13 @@
     "frontend": "read-after-write depuis manager+Live, arrêt micro avant changement, archives mnésiques exclues du contexte",
     "ci": "memory-manager.test.cjs étendu",
     "human": "NON_VALIDE"
+  },
+  "new_knowledge_migration": "GSTAI-Sp/speedarti-thibault@angel-v2/supabase/migrations/20261022_angel_v2_test_readonly_tools_knowledge.sql",
+  "new_knowledge_owner": "Anne-Sophie uniquement : migration NON APPLIQUÉE par l'assistant",
+  "readonly_invoice_appointments": {
+    "status": "CODE_POUSSE_TESTS_EN_ATTENTE",
+    "seed": "Aucune facture persistante insérée : triggers de numérotation et écritures comptables identifiés.",
+    "backend": "TEST seul, filtrage JWT/propriétaire/TEST, aucun outil d'écriture nouveau",
+    "human": "EN_ATTENTE"
   }
 }
