@@ -8,11 +8,11 @@
   "production_approval": false,
   "completion_status": "EN_ATTENTE_TESTS_HUMAINS",
   "last_review": "2026-10-22",
-  "review_reason": "Lot des tests vocaux 5/6/7 : préparation d’un rendez-vous fictif daté, proposition de déplacement conservant la durée réelle d’un seul RDV identifié, et aperçu de facture HT/TVA/TTC sans émission. Secours vocal lorsque Gemini ne choisit pas l’outil, confirmation exclusivement par clic. Trois fiches métier actualisées directement dans Supabase TEST et vérifiées.",
-  "test_limitations": "Tests automatiques navigateur simulé et métier SQL; aucun appel Gemini Live réel ni validation humaine du test 5/6/7 encore déclaré. Le déplacement nécessite un rendez-vous SPÉCIMEN identifié sans ambiguïté; la création et le déplacement passent par un bouton humain. L’aperçu de facture ne crée aucun document.",
+  "review_reason": "Sprints 4-6 sur TEST : veille optionnelle au prénom quand SpeechRecognition existe et seulement après clic; panorama des six modules réellement raccordés, sept marqués A_RACCORDER; signalement chantier SPÉCIMEN avec photo prévisualisée localement, validation au clic, alerte et devis NON envoyés.",
+  "test_limitations": "Le réveil au prénom dépend du navigateur et de l'autorisation utilisateur, sans fonctionnement garanti sur iOS. Le module est séparé du moteur métier production; modules non raccordés visibles. Photos locales seulement, pas d'envoi d'alerte ni de devis, signalement TEST validé au clic. Essais humains à réaliser.",
   "changes_log": "docs/angel-v2/CHANGELOG_BROUILLON.md",
   "tracked_sources": {
-    "index.html": "e312aee47710eb9aa96071321c43a89cd8a92e05",
+    "index.html": "b532916c121d0b448f5192d18db5965a3ce48a33",
     "metier.js": "840a28ba5fbbd175ba77772d9af610e4c9c2078e",
     "transcript-preview.js": "aa7af9f52a79ffed70cbfbc684c6ef3ca7b22a04",
     "archive.js": "4a06fd1b297873cda254e02e48733336cccbe149",
@@ -20,7 +20,8 @@
     "memory-learn.js": "5f1fe4aaeebb6fcfa2c3ea4e097a0db9331a3c61",
     "memory-manager.js": "0139cfa2aaa10da639f7dbc462c4d18e09d0f89c",
     "memory-intent.js": "2e9c6785329b6e248b306021b385bfe2e08e8553",
-    "auto-memory.js": "c197cdc97612073f5c39c1369d89e144df5332b9"
+    "auto-memory.js": "c197cdc97612073f5c39c1369d89e144df5332b9",
+    "sprints456.js": "66a2a687fa21482cf53a2377c2013efb7aaf2ecf"
   },
   "tools": [
     {
@@ -141,7 +142,7 @@
     "knowledge_base_update_required": true,
     "official_integration_requires_explicit_owner_approval": true
   },
-  "knowledge_sync_evidence": "Supabase Ángel V2 TEST: quinze fiches déjà présentes; règles des trois outils preparer_rendez_vous, preparer_deplacement_rendez_vous et preparer_facture actualisées transactionnellement et revérifiées le 22 octobre 2026, is_global=false et score=95.",
+  "knowledge_sync_evidence": "Fiches des quinze outils Gemini existants uniquement. Les trois nouvelles actions de signalement et diagnostic sont déclenchées par boutons, PAS exposées comme tools Gemini et demandent contrôle backend compte TEST. Ne jamais annoncer intégration à SpeedArti V2.",
   "knowledge_source_migration": "GSTAI-Sp/speedarti-thibault@angel-v2/supabase/migrations/20261022_angel_v2_test_knowledge_base.sql",
   "memory_reconciliation": {
     "backend": "angel-live-memory v2 TEST : mémoires triées par updated_at sans seuil importance",
@@ -159,13 +160,20 @@
   },
   "new_sprints": {
     "scope": "sprints 1, 2, 3",
-    "status": "TESTS_5_6_7_PREPARES_CI_EN_COURS",
+    "status": "SPRINTS_4_5_6_FRONTEND_POUSSE_TESTS_CI",
     "known_knowledge_blocker": false,
     "production_integration": false,
-    "live_voice_test": "5_6_7_EN_ATTENTE",
+    "live_voice_test": "4_5_6_EN_ATTENTE_MICRO_ET_MOBILE",
     "technical_ci": "EN_ATTENTE_DERNIER_COMMIT",
     "screenshots_mobile": "EN_ATTENTE",
     "knowledge_blocker": false,
     "real_client_records": "INTERDITS"
+  },
+  "sprints456": {
+    "sprint4": "Activation au prénom opt-in SpeechRecognition, interruption/stop existant, responsive mobile; non garanti selon navigateur.",
+    "sprint5": "Six moteurs TEST réellement accessibles (clients, chantiers, catalogue, devis, factures, agenda); sept familles non raccordées sans simulation de moteur.",
+    "sprint6": "Rapport chantier SPÉCIMEN enregistré en TEST après confirmation humaine, photos locales non transférées, alerte/devis non émis; dictée vers brouillon.",
+    "human_tests": "EN_ATTENTE",
+    "production": "INTERDIT"
   }
 }
