@@ -8,7 +8,7 @@
   "production_approval": false,
   "completion_status": "EN_ATTENTE_TESTS_HUMAINS",
   "last_review": "2026-10-22",
-  "review_reason": "Sprints 4-6 sur TEST : veille optionnelle au prénom quand SpeechRecognition existe et seulement après clic; panorama des six modules réellement raccordés, sept marqués A_RACCORDER; signalement chantier SPÉCIMEN avec photo prévisualisée localement, validation au clic, alerte et devis NON envoyés.",
+  "review_reason": "Sprints 4 à 6 livrés en TEST avec liaisons du signalement chantier aux formulaires existants : brouillon de devis SPÉCIMEN à compléter manuellement, brouillon d'alerte copiable mais non envoyé. La veille au prénom est expérimentale, les modules absents sont A_RACCORDER.",
   "test_limitations": "Le réveil au prénom dépend du navigateur et de l'autorisation utilisateur, sans fonctionnement garanti sur iOS. Le module est séparé du moteur métier production; modules non raccordés visibles. Photos locales seulement, pas d'envoi d'alerte ni de devis, signalement TEST validé au clic. Essais humains à réaliser.",
   "changes_log": "docs/angel-v2/CHANGELOG_BROUILLON.md",
   "tracked_sources": {
@@ -21,7 +21,7 @@
     "memory-manager.js": "0139cfa2aaa10da639f7dbc462c4d18e09d0f89c",
     "memory-intent.js": "2e9c6785329b6e248b306021b385bfe2e08e8553",
     "auto-memory.js": "c197cdc97612073f5c39c1369d89e144df5332b9",
-    "sprints456.js": "66a2a687fa21482cf53a2377c2013efb7aaf2ecf"
+    "sprints456.js": "fb8661271e1b45a7fe9188a6fceef2c94b2e90e0"
   },
   "tools": [
     {
@@ -160,11 +160,11 @@
   },
   "new_sprints": {
     "scope": "sprints 1, 2, 3",
-    "status": "SPRINTS_4_5_6_FRONTEND_POUSSE_TESTS_CI",
+    "status": "SPRINTS_4_5_6_CODE_POUSSE_TESTS_COMPLETS",
     "known_knowledge_blocker": false,
     "production_integration": false,
-    "live_voice_test": "4_5_6_EN_ATTENTE_MICRO_ET_MOBILE",
-    "technical_ci": "EN_ATTENTE_DERNIER_COMMIT",
+    "live_voice_test": "4_5_6_EN_ATTENTE_HUMAIN",
+    "technical_ci": "REVALIDATION_APRES_BOUTONS_DEVIS_ALERTE",
     "screenshots_mobile": "EN_ATTENTE",
     "knowledge_blocker": false,
     "real_client_records": "INTERDITS"
@@ -172,7 +172,7 @@
   "sprints456": {
     "sprint4": "Activation au prénom opt-in SpeechRecognition, interruption/stop existant, responsive mobile; non garanti selon navigateur.",
     "sprint5": "Six moteurs TEST réellement accessibles (clients, chantiers, catalogue, devis, factures, agenda); sept familles non raccordées sans simulation de moteur.",
-    "sprint6": "Rapport chantier SPÉCIMEN enregistré en TEST après confirmation humaine, photos locales non transférées, alerte/devis non émis; dictée vers brouillon.",
+    "sprint6": "Constat SPÉCIMEN conservé en Supabase TEST après clic; photos locales, alerte brouillon copiable sans envoi, formulaire devis TEST prérempli avec prix/TVA à fournir et confirmation humaine.",
     "human_tests": "EN_ATTENTE",
     "production": "INTERDIT"
   }
