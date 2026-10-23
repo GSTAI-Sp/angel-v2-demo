@@ -8,7 +8,7 @@
   "production_approval": false,
   "completion_status": "EN_ATTENTE_TESTS_HUMAINS",
   "last_review": "2026-10-23",
-  "review_reason": "Sprint 7 TEST : huit voix, bienvenue au clic, français principal permanent, cinq langues étrangères avec confirmation, jeu sur mémoire existante, navigation orale et arrêt vocal permanent. Empreintes sources mises à jour.",
+  "review_reason": "Sprint 7 : voix, langues, lexique professionnel, habitudes et arrêt permanent. Test du routeur de langue avant ouverture du guide sécurisé ; source onboarding actualisée.",
   "test_limitations": "L'accueil et préécoute utilisent la voix locale du navigateur, pas la voix Gemini choisie; celle-ci se teste dans une nouvelle session Live. Langues étrangères détectées avec des heuristiques prudentes et consentement explicite. Tests iPhone et humain en attente.",
   "changes_log": "docs/angel-v2/CHANGELOG_BROUILLON.md",
   "tracked_sources": {
@@ -22,7 +22,7 @@
     "memory-intent.js": "2e9c6785329b6e248b306021b385bfe2e08e8553",
     "auto-memory.js": "c197cdc97612073f5c39c1369d89e144df5332b9",
     "sprints456.js": "73ff75f88df36e14c87ac8f3ec18dc5f63a6d14e",
-    "onboarding7.js": "5209c551e6a3e32a31337de91ae8834904777a56"
+    "onboarding7.js": "66abe21df362beef1b8726278e4fd0489792ab75"
   },
   "tools": [
     {
