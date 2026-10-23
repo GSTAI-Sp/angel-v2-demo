@@ -8,12 +8,12 @@
   "production_approval": false,
   "completion_status": "EN_ATTENTE_TESTS_HUMAINS",
   "last_review": "2026-10-23",
-  "review_reason": "Alignement fonctionnel de la démo GitHub Pages sur les sprints métiers 12 à 15 du sous-domaine SpeedArti Thibault : mêmes endpoints propriétaires TEST, mêmes consultations clients/chantiers/catalogue/devis/factures/agenda, aperçu de facture NON CRÉÉE, préparation et confirmation clic de brouillon devis et RDV, signalement SPECIMEN lié par chantier_id réel et relecture après clic. Deux nouveaux outils Gemini en lecture seule pour état de modules et constats. Aucun outil d'écriture Gemini, aucune photo transmise, pas de production. Commits atomiques documentés et nouvelle CI de parité.",
-  "test_limitations": "CI simulée Node.js + contrôles statiques, pas encore d'essai navigateur réel du panneau métier, de la dictée ou de l'origine du futur sous-domaine. La démo indépendante donne les mêmes FONCTIONS TEST sur la même base, mais pas le cadre visuel complet de SpeedArti Thibault. Les anciens constats sans chantier restent possibles via l'ancien formulaire historique; le nouveau formulaire exige un vrai chantier propriétaire. Les factures restent des aperçus non émis et les devis des brouillons SPECIMENS.",
+  "review_reason": "Parité test demo/sous-domaine : les deux interfaces utilisent les mêmes tables et endpoints du projet Supabase Ángel V2 TEST. En plus des formulaires devis/RDV et des nouveaux rapports chantier et factures, la démo rend les sprints 12–15 immédiatement visibles via un bouton; confirmation devis/RDV par clic suivie de relecture exacte UUID, date et heure, suppression immédiate du contexte après réponse serveur pour éviter double confirmation. Suite VM de parité et CI Pages obligatoires. Base de connaissances EXISTANTE mise à jour par migration privée 20261023_angel_v2_demo_preview_parity_knowledge_test.sql appliquée sur TEST.",
+  "test_limitations": "La démo et le sous-domaine partagent les mêmes données et endpoints TEST, mais les interfaces sont différentes (la démo n'est pas la coque React de SpeedArti). Les anciens constats sans chantier de la démo sont conservés pour compatibilité ; le nouveau parcours exige un chantier TEST. Sur les deux, factures non émises, devis brouillons SPECIMENS, rendez-vous TEST confirmés par clic, photos non transférées, aucune émission ni notification. CI sur dernière révision et tests humains encore à valider.",
   "changes_log": "docs/angel-v2/CHANGELOG_BROUILLON.md",
   "tracked_sources": {
     "index.html": "18d54a949dd4d0ddc550692cf77a7ab237f8aa2b",
-    "metier.js": "cbff96da790a74d740ca34265e782727ea3aa4ff",
+    "metier.js": "2fa0766739672a7f7deb21d4c2f838589fac1a74",
     "transcript-preview.js": "aa7af9f52a79ffed70cbfbc684c6ef3ca7b22a04",
     "archive.js": "4a06fd1b297873cda254e02e48733336cccbe149",
     "memory.js": "b9e998b27de807fe3e1b7080afc7f4be0c234cbe",
@@ -175,11 +175,11 @@
   },
   "new_sprints": {
     "scope": "sprints 1, 2, 3",
-    "status": "SPRINT_7_MOTEUR_GEMINI_NATIF_QUESTIONNAIRE_ORAL_CI_A_VALIDER",
+    "status": "PARITE_DEMO_PREPROD_SPRINTS_12_15_A_VERIFIER_CI",
     "known_knowledge_blocker": false,
     "production_integration": false,
-    "live_voice_test": "VALIDATION_HUMAINE_EN_ATTENTE",
-    "technical_ci": "EN_COURS",
+    "live_voice_test": "EN_ATTENTE_TEST_HUMAIN",
+    "technical_ci": "EN_ATTENTE_DERNIER_COMMIT",
     "screenshots_mobile": "EN_ATTENTE",
     "knowledge_blocker": false,
     "real_client_records": "INTERDITS"
@@ -260,6 +260,13 @@
     "perimeter": "DEMO ET PREPRODUCTION TEST SEULEMENT",
     "human_tests": "EN_ATTENTE",
     "subdomain": "A_CONFIGURER_PAR_ANNE_SOPHIE",
-    "commit_evidence": "Chaque changement : feat/fix/test/ci/docs avec Contexte, Évolution, Tests, Risques, Raccordement"
+    "commit_evidence": "Chaque changement : feat/fix/test/ci/docs avec Contexte, Évolution, Tests, Risques, Raccordement",
+    "quick_access": "Bouton Tester les modules 12–15, même sans micro",
+    "quote_verification": "read-after-write consulter_devis par UUID",
+    "appointment_verification": "read-after-write consulter_rendez_vous filtre date, vérification UUID + date + heure",
+    "reviewed_source_sha": "2fa0766739672a7f7deb21d4c2f838589fac1a74",
+    "knowledge_migration": "GSTAI-Sp/speedarti-thibault@angel-v2/supabase/migrations/20261023_angel_v2_demo_preview_parity_knowledge_test.sql : appliquée à Supabase TEST",
+    "ci_gate": "En attente du workflow sur le dernier commit",
+    "human_validation": "EN_ATTENTE"
   }
 }
