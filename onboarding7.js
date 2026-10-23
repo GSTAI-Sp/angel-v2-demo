@@ -296,7 +296,7 @@ function detectedCandidate(text){
   ['pt-BR',/\b(bom dia eu|preciso de ajuda para|quero falar portugues)\b/],
   ['de-DE',/\b(guten morgen ich|ich brauche hilfe|konnen sie mir helfen)\b/]
  ];
- const result=rules.find(([l,r])=>l===profile.secondary_language&&r.test(t));
+ const result=rules.find(([l,r])=>r.test(t));
  return result?result[0]:null;
 }
 function proposal(lang){
@@ -333,7 +333,15 @@ function observeUtterance(text){
  }
  if(sessionLanguage!=='fr-FR')return false;
  const lang=detectedCandidate(text);
- if(lang){proposal(lang);return true;}
+ if(lang){
+  proposal(lang);
+  // L'artisan confirme lui-même ; ce message au modèle n'est qu'une demande
+  // de formulation, sans bascule avant oui explicite.
+  cfg.sendLive?.('J’ai prononcé une phrase dans une autre langue. Demande-moi EN FRANÇAIS si je veux continuer en '+
+    (LANGUAGES.find(x=>x[0]===lang)?.[1]||'français')+
+    '. Ne change pas de langue avant ma confirmation.');
+  return true;
+ }
  return false;
 }
 async function refreshVocabCount(){
@@ -352,7 +360,13 @@ function init(config){
  style.textContent='.onb7{max-width:680px}.onb7 h3{font-size:19px;margin:15px 0}.onb7 p{line-height:1.6}.onb7 input,.onb7 select{font:inherit;width:100%;min-height:46px;border:1px solid #cedbed;border-radius:9px;padding:10px;color:#152a46;background:#fff}.onb7 button{margin:3px}.onb-note{font-size:13px;color:#415c7d;background:#f1f7ff;padding:12px;border-radius:8px}.onb7 .onb7-progress{font-size:13px;font-weight:750;color:#0769d3}.onb7 aside{background:#f4f9ff;border:1px solid #cbdff4;padding:12px;border-radius:9px;margin-top:12px}@media(max-width:580px){.onb7 .actions button{width:100%;min-height:48px}}';
  document.head.append(style);
  const openBtn=elt('button','🎙 Configurer Ángel avec moi (5 min)');
- openBtn.id='onb-open';openBtn.className='secondary';openBtn.type='button';openBtn.onclick=()=>void open();
+ openBtn.id='onb-open';openBtn.className='secondary';openBtn.type='button';
+ openBtn.onclick=()=>{
+  // Déclenché directement par le geste utilisateur : lecture vocale de bienvenue,
+  // sans démarrer ni autoriser silencieusement la capture du micro.
+  speak('Bonjour et bienvenue sur SpeedArti ! Je suis Ángel, votre assistante. En cinq minutes, nous allons choisir ma voix, ma langue secondaire et apprendre vos expressions métier. Le français restera ma langue principale. Vous pourrez toujours me couper à tout moment.');
+  void open();
+ };
  const voicePanel=$('voicePanel');
  voicePanel.append(openBtn);
  panel=elt('section');panel.id='onb-panel';panel.className='card onb7';panel.hidden=true;
