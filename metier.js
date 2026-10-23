@@ -96,7 +96,8 @@ function buildUI(){
   container.innerHTML=`
     <div class="test-label">Modules métier connectés · données fictives</div>
     <h2 style="margin:9px 0 4px">Ángel consulte les données métier</h2>
-    <p class="muted">Essaie « mes factures en attente », « mes rendez-vous aujourd’hui » ou « mon prochain rendez-vous ». Consultations en lecture seule sur les données fictives TEST, sans émission, modification ni envoi.</p>
+    <p class="muted">Cette démo et la préproduction SpeedArti Thibault utilisent les mêmes tables TEST et le même moteur Ángel V2. Tu peux essayer les devis brouillons, l'agenda, l'aperçu de factures et les signalements rattachés aux chantiers, sans toucher à la production. L'interface complète SpeedArti reste propre au sous-domaine.</p>
+    <button type="button" class="primary" id="angel-open-sprints12-15">Tester les modules 12–15, même sans micro</button>
     <div id="angel-business-status" class="output" role="status" aria-live="polite">Connecte-toi pour interroger la base de test.</div>
     <p id="angel-business-diagnostic" class="muted" role="status" aria-live="polite">Dernier outil vocal : aucun appel enregistré.</p>
     <div id="angel-business-pending" class="quote-box" hidden>
@@ -107,8 +108,8 @@ function buildUI(){
        <button class="secondary" id="angel-business-cancel" type="button">Annuler</button>
       </div>
     </div>
-    <details>
-      <summary>Vérifier les modules manuellement, même sans micro</summary>
+    <details id="angel-sprints12-15">
+      <summary>Vérifier les modules 12–15 manuellement, même sans micro</summary>
       <div class="toolbuttons">
         <button class="secondary" id="angel-find-clients" type="button">Voir les clients</button>
         <button class="secondary" id="angel-find-jobs" type="button">Voir les chantiers</button>
@@ -188,6 +189,10 @@ function buildUI(){
   `;
   $('voicePanel').insertAdjacentElement('afterend',container);
   clientSelect=$('angel-client-choice');siteSelect=$('angel-report-site');resultBox=$('angel-business-status');
+  $('angel-open-sprints12-15').addEventListener('click',()=>{
+    const details=$('angel-sprints12-15');details.open=true;
+    details.scrollIntoView({behavior:'smooth',block:'start'});
+  });
   for(const [id,action] of [['angel-find-clients','rechercher_client'],['angel-find-jobs','rechercher_chantier'],['angel-find-items','rechercher_catalogue'],['angel-find-invoices','consulter_factures'],['angel-find-appointments','consulter_rendez_vous'],['angel-find-next-appointment','consulter_rendez_vous'],['angel-find-devis','rechercher_devis'],['angel-briefing','consulter_briefing'],['angel-plan-lecture','executer_plan_lecture'],['angel-find-reports','consulter_signalements_test'],['angel-find-modules','consulter_modules_test']]){
     $(id).addEventListener('click',()=>{
       const args=id==='angel-find-invoices'?{filtre:'en_attente'}:
@@ -492,16 +497,38 @@ async function prepareManualAppointment(){
 async function confirm(){
   if(!pending||busy)return;
   busy=true;$('angel-business-confirm').disabled=true;$('angel-business-cancel').disabled=true;
+  let committed=false;
   try{
     const type=pendingType;
     const action=type==='deplacement'?'confirmer_deplacement_rendez_vous':
       type==='rendez_vous'?'confirmer_rendez_vous':'confirmer_devis';
-    const resp=await call(action,{context_id:pending,confirmation:true});
-    const doc=resp.result?.devis_id;
-    pending=null;pendingType=null;$('angel-business-pending').hidden=true;
-    if(type==='devis'&&doc)await call('consulter_devis',{devis_id:doc});
-  }catch(e){info('Échec de confirmation : '+e.message,true);}
-  finally{busy=false;$('angel-business-confirm').disabled=false;$('angel-business-cancel').disabled=false;}
+    // Seul le clic de l'artisan appelle ce chemin. Gemini ne connaît pas cet outil.
+    const resp=await request(action,{context_id:pending,confirmation:true});
+    if(resp.fictif!==true)throw Error('La confirmation n’a pas été certifiée par Supabase TEST.');
+    committed=true;pending=null;pendingType=null;$('angel-business-pending').hidden=true;
+    if(type==='devis'){
+      const doc=resp.result?.devis_id;
+      if(!uuid.test(String(doc||'')))throw Error('Brouillon peut avoir été créé, identifiant manquant : vérifie la liste TEST.');
+      const readback=await request('consulter_devis',{devis_id:doc});
+      if(readback.fictif!==true||readback.devis?.id!==doc)
+        throw Error('Devis créé mais non confirmé par relecture exacte : vérifie tes devis TEST.');
+      render('consulter_devis',readback);
+    }else{
+      const row=resp.rendez_vous;
+      if(!uuid.test(String(row?.id||''))||typeof row.date!=='string')
+        throw Error('Rendez-vous modifié mais identifiant/date non confirmés : vérifie l’agenda TEST.');
+      const readback=await request('consulter_rendez_vous',{filtre:'date',date:row.date});
+      if(readback.fictif!==true||readback.lecture_seule!==true||
+        !Array.isArray(readback.rendez_vous)||
+        !readback.rendez_vous.some(x=>x.id===row.id&&x.date===row.date&&
+          String(x.heure_debut).slice(0,5)===String(row.heure_debut).slice(0,5)))
+        throw Error('Rendez-vous non certifié après relecture exacte : vérifie ton agenda TEST.');
+      render('consulter_rendez_vous',readback);
+    }
+  }catch(e){
+    info((committed?'Opération potentiellement enregistrée : ':'Échec de confirmation : ')+
+      String(e.message)+'. N’utilise pas une deuxième fois Confirmer avant de vérifier la liste.',true);
+  }finally{busy=false;$('angel-business-confirm').disabled=false;$('angel-business-cancel').disabled=false;}
 }
 async function cancel(){
   if(!pending||busy)return;
