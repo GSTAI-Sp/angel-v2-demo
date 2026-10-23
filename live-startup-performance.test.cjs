@@ -25,22 +25,26 @@ function deferred(){
 function harness(){
  const mic=deferred(),memory=deferred(),token=deferred(),called=[],closed=[];
  const media={getTracks:()=>[{stop:()=>closed.push('micro-stopped')}]};
+ let microphoneCaptureStarted=0;
  const sandbox=vm.createContext({
   AbortController,Promise,Date,Math,Error,
   performance:{now:()=>500},
   navigator:{mediaDevices:{getUserMedia:()=>{called.push('micro');return mic.promise;}}},
+  initCapture:async()=>{microphoneCaptureStarted++;called.push('capture-ready');},
+  setState:()=>{},
   memories:{refresh:()=>{called.push('memory');return memory.promise;}},
   fetch:(url,init)=>{called.push('token');assert.equal(url,'endpoint');
     assert.equal(init.cache,'no-store');assert.equal(init.method,'POST');assert.ok(init.signal);
     return token.promise;},
  });
- vm.runInContext("let startupAbort=null,startupStats=null,stream=null,stopped=false,jwt='jwt-demo';const TOKEN_ENDPOINT='endpoint',PUBLIC_KEY='publishable';"+source,sandbox);
+ vm.runInContext("let startupAbort=null,startupStats=null,stream=null,stopped=false,jwt='jwt-demo',startupEpoch=0;const TOKEN_ENDPOINT='endpoint',PUBLIC_KEY='publishable';"+source,sandbox);
  return {mic,memory,token,called,closed,media,sandbox,
   begin:()=>vm.runInContext('prepareLiveConnection()',sandbox),
   cancel:()=>vm.runInContext('stopped=true;startupAbort.abort();startupAbort=null;',sandbox),
   changeJwt:()=>vm.runInContext("jwt='different';",sandbox),
   active:()=>vm.runInContext('startupAbort!==null',sandbox),
-  hasStream:()=>vm.runInContext('stream!==null',sandbox)
+  hasStream:()=>vm.runInContext('stream!==null',sandbox),
+  captureCalls:()=>microphoneCaptureStarted
  };
 }
 (async()=>{
@@ -59,6 +63,7 @@ function harness(){
  assert.equal(value.snapshot.facts.length,0);
  assert.equal(h.closed.length,0);
  assert.equal(h.hasStream(),true);
+ assert.equal(h.captureCalls(),1,'La capture démarre sans attendre la validation Google');
  assert.equal(h.active(),false,'Ne pas laisser le contrôleur actif après connexion');
  const b=harness(),pending=b.begin();
  b.cancel();
@@ -67,6 +72,7 @@ function harness(){
  b.token.resolve({ok:true,json:async()=>({token:'unused'})});
  assert.equal(await pending,null,'Une session arrêtée ne se connecte pas');
  assert.deepEqual(b.closed,['micro-stopped'],'Une permission accordée après arrêt libère le micro');
+ assert.equal(b.captureCalls(),0,'Le micro arrivé après arrêt ne doit pas démarrer la capture');
  assert.equal(b.hasStream(),false);
  const c=harness(),unavailable=c.begin();
  c.memory.resolve(null);
