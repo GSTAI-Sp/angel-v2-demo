@@ -372,40 +372,166 @@ function dispatchLanguage(accepted){
  message(language==='fr-FR'?'Conversation conservée en français.':
   'Langue temporaire confirmée ; retour au français sur simple demande.');
 }
-function wizardVoiceCommand(text){
- if(!connected||!panel||panel.hidden||typeof text!=='string')return false;
- const t=text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
- if(/^(?:angel[, ]+)?(?:etape suivante|suivant|continue|on continue)[.! ]*$/.test(t)){
-  collect();step=Math.min(step+1,5);render();message('Étape suivante affichée. Rien enregistré.');return true;
- }
- if(/^(?:angel[, ]+)?(?:retour|precedent|etape precedente)[.! ]*$/.test(t)){
-  collect();step=Math.max(step-1,0);render();message('Étape précédente affichée.');return true;
- }
- if(/^(?:angel[, ]+)?(?:repete|redis)[.! ]*$/.test(t)){
-  speak('Étape '+(step+1)+' : '+['bienvenue','choix de la voix','langues','apprendre mon métier','habitudes','confirmation'][step]+'.');
+function nextVoiceStep(){
+ collect();step=Math.min(step+1,5);lastQuestion='';render();
+}
+function answerHabit(t){
+ const trades=[['couvreur','couvreur'],['charpentier','charpentier'],['plombier','plombier'],
+  ['electricien','electricien'],['macon','macon'],['plaquiste','plaquiste'],
+  ['terrassier','terrassier'],['menuisier','menuisier']];
+ if(habitIndex===0){
+  const match=trades.find(([word])=>t.includes(word));
+  if(!match)return false;
+  draft.primary_trade=match[1];
+ }else if(habitIndex===1){
+  if(/tutoie|tutoyer|tutoiement/.test(t))draft.address_mode='tu';
+  else if(/vouvoie|vouvoyer|vouvoiement/.test(t))draft.address_mode='vous';
+  else return false;
+ }else if(habitIndex===2){
+  if(/courte|court|bref|rapide/.test(t))draft.reply_style='court';
+  else if(/detaille|longue|precis/.test(t))draft.reply_style='detaille';
+  else return false;
+ }else if(habitIndex===3){
+  if(/debutant|simple|explique/.test(t))draft.expertise_level='debutant';
+  else if(/professionnel|pro|technique/.test(t))draft.expertise_level='professionnel';
+  else return false;
+ }else if(habitIndex===4){
+  if(/metres? carre|m2|m²/.test(t))draft.preferred_unit='m2';
+  else if(/metres? cube|m3|m³/.test(t))draft.preferred_unit='m3';
+  else if(/metres? lineaire|ml/.test(t))draft.preferred_unit='ml';
+  else if(/unite|piece/.test(t))draft.preferred_unit='u';
+  else return false;
+ }else return false;
+ habitIndex++;
+ lastQuestion='';
+ render();
+ message('Réponse orale prise en compte dans le brouillon, pas encore enregistrée.');
+ return true;
+}
+function answerVocabulary(text,t){
+ if(quizWaitingForConfirmation){
+  if(/\b(?:oui je confirme ce mot|je confirme ce mot|oui enregistre ce mot|je valide ce mot)\b/.test(t)){
+   if(busy)return true;
+   busy=true;
+   void Promise.resolve(cfg.confirmWord?.()).then(async verified=>{
+    if(verified!==true){
+     message('Mot non vérifié dans la mémoire. Utilise le panneau mémoire pour vérifier.',true);
+     return;
+    }
+    quizWaitingForConfirmation=false;quizTerm='';quizDefinition='';
+    quiz++;
+    await refreshVocabCount();
+    if(quiz>=5)nextVoiceStep();
+    else{lastQuestion='';render()}
+    message('Expression enregistrée et relue depuis la mémoire TEST existante.');
+   }).catch(e=>message('Impossible de confirmer le mot : '+String(e),true))
+   .finally(()=>{busy=false});
+   return true;
+  }
+  if(/^\s*(non|annule|annuler|je refuse)\b/.test(t)){
+   cfg.cancelWord?.();quizWaitingForConfirmation=false;quizTerm='';quizDefinition='';
+   lastQuestion='';render();return true;
+  }
+  message('Dis exactement « oui je confirme ce mot » ou « non » pour le refuser.');
   return true;
  }
+ if(/\b(?:passer|passe|aucun mot|je passe)\b/.test(t)){
+  quizTerm='';quizDefinition='';quiz++;
+  if(quiz>=5)nextVoiceStep();else{lastQuestion='';render();}
+  return true;
+ }
+ if(!quizTerm){
+  const m=t.match(/(?:mon mot est|mon expression est|j appelle ca|je dis)\s+(.+)/);
+  if(!m||m[1].trim().length<2){
+   message('Pour le jeu, dis par exemple « mon mot est liteau » ou « passer ».');return true;
+  }
+  quizTerm=m[1].trim().slice(0,55);lastQuestion='';render();return true;
+ }
+ const m=t.match(/(?:ca veut dire|cela veut dire|il signifie|sa definition est|c est)\s+(.+)/);
+ const definition=(m?m[1]:text).trim().slice(0,95);
+ if(definition.length<2){message('Dis ce que signifie le terme.');return true;}
+ quizDefinition=definition;
+ const result=cfg.proposeWord?.({type:'vocabulaire',vocab_type:'expression_regionale',
+  source:quizTerm,cible:quizDefinition});
+ if(result?.status!=='confirmation_humaine_requise'){
+  message('Une autre mémoire est peut-être en attente. Confirme-la ou annule-la avant ce défi.',true);
+  return true;
+ }
+ quizWaitingForConfirmation=true;lastQuestion='';render();
+ return true;
+}
+function wizardVoiceCommand(text){
+ if(!connected||!panel||panel.hidden||typeof text!=='string')return false;
+ const t=text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+  .replace(/[’']/g,' ').replace(/\s+/g,' ').trim();
+ if(/^(?:angel[, ]+)?(?:etape suivante|suivant|continue|on continue)[.! ]*$/.test(t)){
+  nextVoiceStep();return true;
+ }
+ if(/^(?:angel[, ]+)?(?:retour|precedent|etape precedente)[.! ]*$/.test(t)){
+  collect();step=Math.max(step-1,0);lastQuestion='';render();return true;
+ }
+ if(/^(?:angel[, ]+)?(?:repete|redis)[.! ]*$/.test(t)){
+  lastQuestion='';askGuide(true);return true;
+ }
+ if(step===0){
+  if(/\b(?:oui|commence|on commence|allons y|c est parti|demarrer)\b/.test(t)){
+   nextVoiceStep();return true;
+  }
+ }
  if(step===1){
-  for(const [name] of VOICES)if(t.includes('voix '+name.toLowerCase())){
-   draft.voice_name=name;render();message('Voix '+name+' sélectionnée pour la prochaine session. Enregistre tes réglages pour la conserver.');
+  const gender=t.match(/\b(?:femme|feminin|voix feminine|femmes|homme|masculin|voix masculine|hommes)\b/);
+  if(gender){
+   const newGender=/femme|feminin/.test(gender[0])?'female':'male';
+   if(voiceGender!==newGender){
+    voiceGender=newGender;draft.voice_name=VOICES.find(row=>row[2]===newGender)[0];
+   }
+  }
+  const numberWords={une:1,un:1,premiere:1,premier:1,deux:2,deuxieme:2,
+   trois:3,troisieme:3,quatre:4,quatrieme:4,cinq:5,cinquieme:5,six:6,sixieme:6};
+  const numbered=t.match(/\b(?:voix\s+)?(?:femme|homme|feminine|masculine)\s+(\d|une|un|premiere|premier|deux|deuxieme|trois|troisieme|quatre|quatrieme|cinq|cinquieme|six|sixieme)\b/);
+  const num=numbered?(Number(numbered[1])||numberWords[numbered[1]]):null;
+  let selected=VOICES.find(row=>new RegExp('\\b'+row[0].toLowerCase()+'\\b').test(t));
+  if(!selected&&num&&num>=1&&num<=6)selected=VOICES.filter(row=>row[2]===voiceGender)[num-1];
+  if(selected){
+   draft.voice_name=selected[0];voiceGender=selected[2];lastQuestion='';render();
+   message('Voix '+selected[0]+' sélectionnée. Dis « écoute cette voix » pour la tester avec Gemini, ou « suivant ».');return true;
+  }
+  if(/ecoute|tester|teste|essayer|essaie/.test(t)){
+   message('Nouvelle connexion Gemini Live avec la voix '+draft.voice_name+'.');
+   cfg.restartWithVoice?.();return true;
+  }
+  if(gender){
+   lastQuestion='';render();message('Catégorie '+(voiceGender==='female'?'femmes':'hommes')+
+    ' sélectionnée. Dis le numéro de voix que tu préfères.');return true;
+  }
+ }
+ if(step===2){
+  const rules=[['none',/francais uniquement|pas d autre langue|aucune|seulement francais/],
+   ['es-US',/espagnol/],['en-US',/anglais/],['it-IT',/italien/],
+   ['pt-BR',/portugais/],['de-DE',/allemand/]];
+  const match=rules.find(row=>row[1].test(t));
+  if(match){
+   draft.secondary_language=match[0];nextVoiceStep();
    return true;
   }
  }
- if(step===4){
-  if(/\b(tutoie moi|tu peux me tutoyer)\b/.test(t)){
-   draft.address_mode='tu';render();message('Tutoiement proposé, non enregistré avant clic.');return true;
+ if(step===3)return answerVocabulary(text,t);
+ if(step===4)return answerHabit(t);
+ if(step===5){
+  if(/\b(?:oui je confirme et j enregistre mes reglages|je confirme et j enregistre mes reglages|oui j enregistre mes reglages)\b/.test(t)){
+   if(busy)return true;
+   collect();
+   void saveProfile(true).then(ok=>{
+    if(ok){panel.hidden=true;cfg.sendGuide?.('Réglages du compte TEST enregistrés et vérifiés. Remercie brièvement l’artisan en français avec ta vraie voix Google Gemini.');}
+   });
+   return true;
   }
-  if(/\b(vouvoie moi|vous pouvez me vouvoyer)\b/.test(t)){
-   draft.address_mode='vous';render();message('Vouvoiement proposé, non enregistré avant clic.');return true;
-  }
-  for(const [name,label] of TRADES)if(name!=='general'&&
-    t.includes('je suis '+name)){
-    draft.primary_trade=name;render();message('Métier '+label+' sélectionné, à confirmer à la fin.');return true;
+  if(/\b(?:reprendre|modifier|changer)\b/.test(t)){
+   step=1;lastQuestion='';render();return true;
   }
  }
  if(/\b(enregistre|termine|sauvegarde)\b/.test(t)){
-  message('Pour protéger tes préférences, clique sur « Enregistrer mes réglages » ou « Enregistrer et terminer plus tard ». Aucune sauvegarde automatique.');
-  return true;
+  message('Par sécurité, le mot « enregistre » seul ne suffit pas. La confirmation complète sera demandée au résumé.');return true;
  }
  return false;
 }
