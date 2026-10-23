@@ -135,9 +135,18 @@
       }else{
         setStatus('⚠ Enregistrement accepté, mais la relecture n’a pas confirmé la mémoire. Redémarre le micro ou réessaie plus tard.',true);
       }
+      return Boolean(verified);
     }catch(err){
       setStatus('✗ MÉMOIRE NON ENREGISTRÉE : '+err.message,true);
+      return false;
     }finally{busy=false;button.disabled=false;}
+  }
+  // Le consentement explicite de l'artisan peut aussi être dicté dans le jeu
+  // vocal guidé. Exactement le même service sécurisé, sans écriture silencieuse.
+  async function confirmPendingByVoice(){
+    if(!proposal||busy||proposal.type!=='vocabulaire')
+      return false;
+    return await save()===true;
   }
   function cancel(){
     if(busy)return;
@@ -252,5 +261,5 @@
     if(approval)approval.hidden=true;
     if(voiceStatus)voiceStatus.textContent='Mémoire : aucune sauvegarde en cours.';
   }
-  window.AngelMemoryLearning={init,show,hide,propose,fromVoiceText};
+  window.AngelMemoryLearning={init,show,hide,propose,fromVoiceText,confirmPendingByVoice};
 })();
