@@ -8,8 +8,8 @@
   "production_approval": false,
   "completion_status": "EN_ATTENTE_TESTS_HUMAINS",
   "last_review": "2026-10-23",
-  "review_reason": "Sprint 7 TEST : accueil à voix haute dès bouton de configuration, huit voix Gemini Live réglables, français fr-FR principal immuable, cinq langues secondaires proposées après phrase significative avec consentement explicite, jeu de cinq mots rattaché à la mémoire existante, préférences métier et communication enregistrées par clic puis relues, interruption et STOP TOUJOURS obligatoires sans option de désactivation.",
-  "test_limitations": "Précoute indicative par voix native navigateur distincte de Google Gemini; vraie sélection Gemini testable après démarrage Live. Les expressions étrangères sont détectées prudemment, pas un système universel de reconnaissance de langue. Confirmation oui/non requise avant bascule temporaire. Essais vocaux humains, notamment Safari iOS, encore EN ATTENTE.",
+  "review_reason": "Sprint 7 TEST : huit voix, bienvenue au clic, français principal permanent, cinq langues étrangères avec confirmation, jeu sur mémoire existante, navigation orale et arrêt vocal permanent. Empreintes sources mises à jour.",
+  "test_limitations": "L'accueil et préécoute utilisent la voix locale du navigateur, pas la voix Gemini choisie; celle-ci se teste dans une nouvelle session Live. Langues étrangères détectées avec des heuristiques prudentes et consentement explicite. Tests iPhone et humain en attente.",
   "changes_log": "docs/angel-v2/CHANGELOG_BROUILLON.md",
   "tracked_sources": {
     "index.html": "2dfa746861c94a95330d474fca10a8969df60cc5",
@@ -22,7 +22,7 @@
     "memory-intent.js": "2e9c6785329b6e248b306021b385bfe2e08e8553",
     "auto-memory.js": "c197cdc97612073f5c39c1369d89e144df5332b9",
     "sprints456.js": "73ff75f88df36e14c87ac8f3ec18dc5f63a6d14e",
-    "onboarding7.js": "f8b05dd521216aa57af955a2c622223a077f26b8"
+    "onboarding7.js": "5209c551e6a3e32a31337de91ae8834904777a56"
   },
   "tools": [
     {
@@ -161,11 +161,11 @@
   },
   "new_sprints": {
     "scope": "sprints 1, 2, 3",
-    "status": "SPRINT_7_ONBOARDING_POUSSE_A_VALIDER",
+    "status": "SPRINT_7_FINAL_CI_EN_COURS",
     "known_knowledge_blocker": false,
     "production_integration": false,
-    "live_voice_test": "ONBOARDING_VOIX_LANGUES_MEMOIRE_NON_VALIDE",
-    "technical_ci": "EN_ATTENTE_DERNIER_COMMIT",
+    "live_voice_test": "A_VALIDER",
+    "technical_ci": "DERNIER_COMMIT",
     "screenshots_mobile": "EN_ATTENTE",
     "knowledge_blocker": false,
     "real_client_records": "INTERDITS"
@@ -219,6 +219,9 @@
     "barge_in": "TOUJOURS ACTIVE — aucun réglage contraire",
     "manual_mic_stop": "TOUJOURS ACTIF — aucun réglage contraire",
     "status": "TECHNIQUE_A_VALIDER_EN_CI_ET_HUMAIN",
-    "limitations": "TTS aperçu navigateur indicatif, confirmation de langues détectées par heuristiques fortes, essais iPhone à faire"
+    "limitations": "TTS aperçu navigateur indicatif, confirmation de langues détectées par heuristiques fortes, essais iPhone à faire",
+    "voice_wizard": "Bienvenue au clic en voix locale, commandes orales Suivant/Précédent/Répète, choix de voix, métier et tutoiement ; sauvegarde uniquement par clic humain.",
+    "manual_stop": "Micro et voix toujours coupables à tout instant, bouton et commande Arrête le micro non désactivables.",
+    "human_tests": "A_VERIFIER_SUR_SAFARI_ET_ORDINATEUR"
   }
 }
