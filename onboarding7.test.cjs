@@ -65,6 +65,28 @@ run('resetConversationLanguage()');
 assert.equal(run('proposedLanguage'),null);
 assert.equal(run('sessionLanguage'),'fr-FR');
 assert.equal(dom['onb-language-ask'].hidden,true);
+// Commandes vocales du questionnaire : local uniquement, pas d'écriture sans clic.
+run("panel={hidden:false};render=()=>{};collect=()=>{};step=1");
+assert.equal(run("wizardVoiceCommand('voix Kore')"),true);
+assert.equal(run("draft.voice_name"),'Kore');
+assert.equal(run("wizardVoiceCommand('suivant')"),true);
+assert.equal(run('step'),2);
+assert.equal(run("wizardVoiceCommand('precedent')"),true);
+assert.equal(run('step'),1);
+assert.equal(run("wizardVoiceCommand('enregistre')"),true);
+assert.equal(run('profile.onboarding_completed'),false,'La parole ne sauve pas le profil');
+run("step=4");
+assert.equal(run("wizardVoiceCommand('tu peux me tutoyer')"),true);
+assert.equal(run("draft.address_mode"),'tu');
+assert.equal(run("wizardVoiceCommand('je suis couvreur')"),true);
+assert.equal(run("draft.primary_trade"),'couvreur');
+let voiceStops=0;
+sandbox.forceStop=()=>{voiceStops++;};
+run("cfg.stopVoice=forceStop");
+assert.equal(run("observeUtterance('arrête le micro')"),true);
+assert.equal(voiceStops,1);
+assert.equal(run('profile.main_language'),'fr-FR');
+
 // Contrat de persistance : écritures uniquement par clic de sauvegarde, JWT TEST,
 // relecture avant confirmation, jamais de bascule de la langue principale.
 let writes=0;
