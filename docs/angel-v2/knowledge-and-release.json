@@ -8,12 +8,12 @@
   "production_approval": false,
   "completion_status": "EN_ATTENTE_TESTS_HUMAINS",
   "last_review": "2026-10-22",
-  "review_reason": "Sprints 4 à 6 livrés en TEST avec liaisons du signalement chantier aux formulaires existants : brouillon de devis SPÉCIMEN à compléter manuellement, brouillon d'alerte copiable mais non envoyé. La veille au prénom est expérimentale, les modules absents sont A_RACCORDER.",
-  "test_limitations": "Le réveil au prénom dépend du navigateur et de l'autorisation utilisateur, sans fonctionnement garanti sur iOS. Le module est séparé du moteur métier production; modules non raccordés visibles. Photos locales seulement, pas d'envoi d'alerte ni de devis, signalement TEST validé au clic. Essais humains à réaliser.",
+  "review_reason": "CORRECTIF des retours humains du sprint 4 et 6 : « Angèle » reconnu en plus d'Angel/Ángel dans la veille volontaire SpeechRecognition; les trois formulations exactes de signalement de fuite sur toiture préremplissent le formulaire TEST depuis la transcription avant réponse Gemini et ne lancent ni rechercher_client ni rechercher_chantier hors sujet.",
+  "test_limitations": "Le test de reconnaissance du prénom est un test de logique Javascript, PAS une validation du micro ni de l'activation mains libres iOS : l'API navigateur peut refuser, se fermer ou nécessiter un geste manuel. Les demandes de fuite ouvrent seulement le formulaire TEST, sans client requis, photo uploadée ni alerte envoyée. Confirmation manuelle obligatoire.",
   "changes_log": "docs/angel-v2/CHANGELOG_BROUILLON.md",
   "tracked_sources": {
-    "index.html": "b532916c121d0b448f5192d18db5965a3ce48a33",
-    "metier.js": "840a28ba5fbbd175ba77772d9af610e4c9c2078e",
+    "index.html": "09c92c36be915a99796f1efed8d9d26ac0259532",
+    "metier.js": "bf155519bdfc1c7358b6fc3322abdcc96240710f",
     "transcript-preview.js": "aa7af9f52a79ffed70cbfbc684c6ef3ca7b22a04",
     "archive.js": "4a06fd1b297873cda254e02e48733336cccbe149",
     "memory.js": "b9e998b27de807fe3e1b7080afc7f4be0c234cbe",
@@ -21,7 +21,7 @@
     "memory-manager.js": "0139cfa2aaa10da639f7dbc462c4d18e09d0f89c",
     "memory-intent.js": "2e9c6785329b6e248b306021b385bfe2e08e8553",
     "auto-memory.js": "c197cdc97612073f5c39c1369d89e144df5332b9",
-    "sprints456.js": "fb8661271e1b45a7fe9188a6fceef2c94b2e90e0"
+    "sprints456.js": "73ff75f88df36e14c87ac8f3ec18dc5f63a6d14e"
   },
   "tools": [
     {
@@ -160,11 +160,11 @@
   },
   "new_sprints": {
     "scope": "sprints 1, 2, 3",
-    "status": "SPRINTS_4_5_6_CODE_POUSSE_TESTS_COMPLETS",
+    "status": "INCIDENT_AND_WAKE_FIX_PUSHED_CI_PENDING",
     "known_knowledge_blocker": false,
     "production_integration": false,
-    "live_voice_test": "4_5_6_EN_ATTENTE_HUMAIN",
-    "technical_ci": "REVALIDATION_APRES_BOUTONS_DEVIS_ALERTE",
+    "live_voice_test": "INCIDENT_ET_PRENOM_A_RETESTER",
+    "technical_ci": "EN_ATTENTE",
     "screenshots_mobile": "EN_ATTENTE",
     "knowledge_blocker": false,
     "real_client_records": "INTERDITS"
@@ -173,7 +173,9 @@
     "sprint4": "Activation au prénom opt-in SpeechRecognition, interruption/stop existant, responsive mobile; non garanti selon navigateur.",
     "sprint5": "Six moteurs TEST réellement accessibles (clients, chantiers, catalogue, devis, factures, agenda); sept familles non raccordées sans simulation de moteur.",
     "sprint6": "Constat SPÉCIMEN conservé en Supabase TEST après clic; photos locales, alerte brouillon copiable sans envoi, formulaire devis TEST prérempli avec prix/TVA à fournir et confirmation humaine.",
-    "human_tests": "EN_ATTENTE",
-    "production": "INTERDIT"
+    "human_tests": "RETEST_MICRO_REQUIS",
+    "production": "INTERDIT",
+    "field_feedback": "Trois formulations dictées de signalement de fuite sur toiture déclenchaient des recherches client/chantier inutiles; la veille ne reconnaissait pas Angèle avec e final.",
+    "fix": "Détection normalisée en français, préremplissage précoce du constat fictif, retour d'outil explicite sans recherche client/chantier, prompt métier prioritaire; variante prénom Angèle reconnue, diagnostic navigateur amélioré."
   }
 }
