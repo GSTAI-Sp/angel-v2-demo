@@ -255,8 +255,8 @@ function render(){
  if(step===3){
   const list=QUESTIONS[draft.primary_trade]||QUESTIONS.general;
   const challenge=elt('p','Défi '+(quiz+1)+'/5 — '+list[quiz%list.length]);
-  const term=elt('input');term.type='text';term.id='onb-term';term.maxLength=55;term.placeholder='Ton mot ou ton expression métier';
-  const definition=elt('input');definition.type='text';definition.id='onb-definition';definition.maxLength=95;definition.placeholder='Ce que cette expression veut dire';
+  const term=elt('input');term.type='text';term.id='onb-term';term.maxLength=55;term.placeholder='Ton mot ou ton expression métier';term.value=quizTerm;
+  const definition=elt('input');definition.type='text';definition.id='onb-definition';definition.maxLength=95;definition.placeholder='Ce que cette expression veut dire';definition.value=quizDefinition;
   const submit=elt('button','Préparer ce mot dans mes mémoires');submit.type='button';submit.className='primary';
   submit.onclick=()=>{
    const a=term.value.trim(),b=definition.value.trim();
@@ -264,8 +264,9 @@ function render(){
    lastWord={source:a,cible:b};
    const result=cfg.proposeWord?.({type:'vocabulaire',vocab_type:'expression_regionale',source:a,cible:b});
    if(result?.status==='confirmation_humaine_requise'){
-    quiz=Math.min(4,quiz+1);message('Défi proposé. Confirme l’enregistrement dans le panneau mémoire existant. Rien n’est encore enregistré.');
-    render();
+    quizTerm=a;quizDefinition=b;quizWaitingForConfirmation=true;
+    lastQuestion='';render();
+    message('Défi proposé. Clique Confirmer cette mémoire ou dis « oui je confirme ce mot ». Rien n’est encore enregistré.');
    }else message('Le panneau mémoire n’a pas accepté cette proposition. Valide ou annule celle déjà en attente.',true);
   };
   const count=elt('p','Mots métier déjà confirmés dans ta mémoire : '+wordCount+
@@ -418,12 +419,9 @@ function answerVocabulary(text,t){
      message('Mot non vérifié dans la mémoire. Utilise le panneau mémoire pour vérifier.',true);
      return;
     }
-    quizWaitingForConfirmation=false;quizTerm='';quizDefinition='';
-    quiz++;
-    await refreshVocabCount();
-    if(quiz>=5)nextVoiceStep();
-    else{lastQuestion='';render()}
-    message('Expression enregistrée et relue depuis la mémoire TEST existante.');
+    // Le rappel commun onVocabSaved() est déclenché par la mémoire
+    // uniquement après la relecture serveur. Évite d'avancer deux fois.
+    if(quizWaitingForConfirmation)await onVocabSaved();
    }).catch(e=>message('Impossible de confirmer le mot : '+String(e),true))
    .finally(()=>{busy=false});
    return true;
@@ -563,6 +561,21 @@ function observeUtterance(text){
  }
  return false;
 }
+async function onVocabSaved(){
+ if(!cfg?.getToken?.())return false;
+ const r=await cfg.reloadMemories?.();
+ wordCount=Array.isArray(r?.vocabulaire)?r.vocabulaire.length:0;
+ if(quizWaitingForConfirmation&&Array.isArray(r?.vocabulaire) &&
+  r.vocabulaire.some(x=>x.source===quizTerm&&x.cible===quizDefinition)){
+  quizWaitingForConfirmation=false;quizTerm='';quizDefinition='';
+  quiz++;
+  if(quiz>=5)nextVoiceStep();else{lastQuestion='';render();}
+  message('Mot confirmé et vérifié dans la mémoire existante.');
+  return true;
+ }
+ if(panel&&!panel.hidden&&step===3)render();
+ return false;
+}
 async function refreshVocabCount(){
  if(!cfg?.getToken?.())return;
  try{
@@ -610,5 +623,5 @@ function init(config){
 }
 window.AngelOnboarding7={init,show,hide,open,getVoice,languageInstruction,observeUtterance,
  voiceStop,resetConversationLanguage,refreshVocabCount,detectedCandidate,dispatchLanguage,
- onLiveReady,askGuide,questionForStep};
+ onLiveReady,askGuide,questionForStep,onVocabSaved};
 })();
