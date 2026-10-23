@@ -539,7 +539,9 @@ transcripts.init();
 archives.init({baseUrl:BASE_URL,publicKey:PUBLIC_KEY,getToken:()=>jwt,
   transcript:transcripts,onSwitch:()=>{stop();setState('Micro coupé','Ouvre une session vocale pour poursuivre.');}});
 memories.init({baseUrl:BASE_URL,publicKey:PUBLIC_KEY,getToken:()=>jwt});
-learning.init({baseUrl:BASE_URL,publicKey:PUBLIC_KEY,getToken:()=>jwt,refresh:()=>memories.refresh(),transcripts,onSaved:()=>manager.refresh()});
+learning.init({baseUrl:BASE_URL,publicKey:PUBLIC_KEY,getToken:()=>jwt,refresh:()=>memories.refresh(),transcripts,
+  onSaved:async()=>{await onboarding.onVocabSaved();await manager.refresh()}
+});
 manager.init({baseUrl:BASE_URL,publicKey:PUBLIC_KEY,getToken:()=>jwt,onChanged:()=>memories.refresh(),
   onBeforeChange:()=>{
     stop();
@@ -561,7 +563,7 @@ onboarding.init({baseUrl:BASE_URL,publicKey:PUBLIC_KEY,getToken:()=>jwt,
   interruptAudio:()=>clearPlayback(),
   stopVoice:()=>{stop();setState('Micro coupé','Ángel a été arrêtée immédiatement.');},
   confirmWord:()=>learning.confirmPendingByVoice(),
-  cancelWord:()=>learning.cancel?.(),
+  cancelWord:()=>learning.cancelPendingByVoice(),
   sendGuide:(text)=>{
     if(stopped||!setupDone||!socket||socket.readyState!==WebSocket.OPEN)return false;
     socket.send(JSON.stringify({clientContent:{turns:[{role:'user',parts:[{text}]}],turnComplete:true}}));
