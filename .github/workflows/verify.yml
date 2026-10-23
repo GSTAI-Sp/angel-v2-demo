@@ -100,6 +100,10 @@ jobs:
           assert "Promise.all([micPromise,memoryPromise,tokenPromise])" in html
           assert "signal:controller.signal" in html
           assert "startupAbort.abort()" in html
+          assert "MAX_STARTUP_AUDIO_MS=20000" in html
+          assert "enqueuePendingAudio" in html
+          assert "flushPendingAudio" in html
+          assert "Micro actif — parle maintenant" in html
           assert "preconnect" in html
           assert "Lister tous mes devis TEST" in metier
           assert len(js) > 2500
@@ -126,4 +130,5 @@ jobs:
           node sprints456.test.cjs
           node incident-wake-routing.test.cjs
           node live-startup-performance.test.cjs
+          node instant-micro-buffer.test.cjs
           node scripts/quality-gate.cjs
