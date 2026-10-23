@@ -13,7 +13,7 @@ const verify=read('.github/workflows/verify.yml');
 const entry=read('index.html');
 const metier=read('metier.js');
 const expected=[
- 'index.html','metier.js','transcript-preview.js','archive.js',
+ 'index.html','metier.js','sprints456.js','transcript-preview.js','archive.js',
  'memory.js','memory-learn.js','memory-manager.js','memory-intent.js','auto-memory.js'
 ];
 const sources=Object.keys(manifest.tracked_sources||{});
@@ -65,8 +65,8 @@ for(const item of entries){
  assert.ok(['EN_ATTENTE','VALIDE_HUMAIN'].includes(item.human_test),'Statut humain incohérent');
  assert.equal(typeof item.knowledge_db_synced,'boolean','Statut connaissance invalide');
 }
-// Blocage obligatoire des nouveaux outils tant que leur fiche n'est pas
-// réellement intégrée dans la base de connaissances existante par Anne-Sophie.
+// La publication est bloquée lorsqu'un outil Gemini déclaré manque dans la base TEST.
+ // Une fiche ne peut être marquée synchronisée que sur preuve SQL réelle.
 const missingKnowledge=entries.filter(x=>!x.knowledge_db_synced);
 if(missingKnowledge.length){
  assert.equal(manifest.completion_status,'BLOQUE_CONNAISSANCES',
