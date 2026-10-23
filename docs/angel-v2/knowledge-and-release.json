@@ -8,11 +8,11 @@
   "production_approval": false,
   "completion_status": "EN_ATTENTE_TESTS_HUMAINS",
   "last_review": "2026-10-22",
-  "review_reason": "CORRECTIF des retours humains du sprint 4 et 6 : « Angèle » reconnu en plus d'Angel/Ángel dans la veille volontaire SpeechRecognition; les trois formulations exactes de signalement de fuite sur toiture préremplissent le formulaire TEST depuis la transcription avant réponse Gemini et ne lancent ni rechercher_client ni rechercher_chantier hors sujet.",
-  "test_limitations": "Le test de reconnaissance du prénom est un test de logique Javascript, PAS une validation du micro ni de l'activation mains libres iOS : l'API navigateur peut refuser, se fermer ou nécessiter un geste manuel. Les demandes de fuite ouvrent seulement le formulaire TEST, sans client requis, photo uploadée ni alerte envoyée. Confirmation manuelle obligatoire.",
+  "review_reason": "Optimisation latence après retour utilisateur: la permission getUserMedia, la lecture fraîche des mémoires TEST et la demande du jeton Google démarrent simultanément au clic micro, au lieu d'être séquentielles. AbortController et garde de JWT libèrent le micro tardif. Temps total et trois délais partiels affichés sans données sensibles.",
+  "test_limitations": "Tests automatisés de concurrence et d'annulation sans mesure réelle réseau sur iPhone ou ordinateur. La permission navigateur, Supabase, Google et le setup WebSocket peuvent toujours être lents. Les souvenirs actuels restent obligatoires à chaque session et aucun jeton n'est mis en cache.",
   "changes_log": "docs/angel-v2/CHANGELOG_BROUILLON.md",
   "tracked_sources": {
-    "index.html": "09c92c36be915a99796f1efed8d9d26ac0259532",
+    "index.html": "ce52eea215dfc43e6b37b251779280061ec51248",
     "metier.js": "bf155519bdfc1c7358b6fc3322abdcc96240710f",
     "transcript-preview.js": "aa7af9f52a79ffed70cbfbc684c6ef3ca7b22a04",
     "archive.js": "4a06fd1b297873cda254e02e48733336cccbe149",
@@ -160,10 +160,10 @@
   },
   "new_sprints": {
     "scope": "sprints 1, 2, 3",
-    "status": "INCIDENT_AND_WAKE_FIX_PUSHED_CI_PENDING",
+    "status": "OPTIMISATION_LATENCE_CLIC_MICRO_EN_CI",
     "known_knowledge_blocker": false,
     "production_integration": false,
-    "live_voice_test": "INCIDENT_ET_PRENOM_A_RETESTER",
+    "live_voice_test": "PERFORMANCE_A_VALIDER",
     "technical_ci": "EN_ATTENTE",
     "screenshots_mobile": "EN_ATTENTE",
     "knowledge_blocker": false,
@@ -177,5 +177,11 @@
     "production": "INTERDIT",
     "field_feedback": "Trois formulations dictées de signalement de fuite sur toiture déclenchaient des recherches client/chantier inutiles; la veille ne reconnaissait pas Angèle avec e final.",
     "fix": "Détection normalisée en français, préremplissage précoce du constat fictif, retour d'outil explicite sans recherche client/chantier, prompt métier prioritaire; variante prénom Angèle reconnue, diagnostic navigateur amélioré."
+  },
+  "startup_performance": {
+    "before": "Permission micro puis mémoire TEST puis jeton Google successifs",
+    "after": "Trois prérequis en parallèle et handshake WebSocket ensuite",
+    "metrics": "Temps total du clic à setupComplete affiché avec durées micro/mémoire/jeton",
+    "human_test": "EN_ATTENTE"
   }
 }
