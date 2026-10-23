@@ -8,21 +8,21 @@
   "production_approval": false,
   "completion_status": "EN_ATTENTE_TESTS_HUMAINS",
   "last_review": "2026-10-23",
-  "review_reason": "Sprint 7 : voix, langues, lexique professionnel, habitudes et arrêt permanent. Test du routeur de langue avant ouverture du guide sécurisé ; source onboarding actualisée.",
-  "test_limitations": "L'accueil et préécoute utilisent la voix locale du navigateur, pas la voix Gemini choisie; celle-ci se teste dans une nouvelle session Live. Langues étrangères détectées avec des heuristiques prudentes et consentement explicite. Tests iPhone et humain en attente.",
+  "review_reason": "Correctifs terrain Sprint 7. Ancien accueil robotique SpeechSynthesis supprimé. Tout le questionnaire est maintenant posé, écouté et répondu par le vrai moteur de voix Gemini Live via setupComplete, avec six voix féminines et six masculines nommées et essais par nouvelle session. Le guide vocal recueille oui pour commencer, choix homme/femme + numéro, langue, cinq mots avec définitions et confirmation contrôlée dans les mémoires existantes, cinq habitudes métier, récapitulatif et consentement vocal exact pour enregistrer le profil. STOP manuel et interruption toujours actifs.",
+  "test_limitations": "Tests statiques et simulés du client, non essai micro réel iOS. La préécoute des vraies voix nécessite une session Gemini par sélection et peut être soumise aux permissions micro; aucun SpeechSynthesis. Des termes techniques difficiles doivent être relus/validés avant mémorisation. Les choix de profil ne sont sauvegardés que sur confirmation vocale exacte ou clic, toujours en français principal.",
   "changes_log": "docs/angel-v2/CHANGELOG_BROUILLON.md",
   "tracked_sources": {
-    "index.html": "2dfa746861c94a95330d474fca10a8969df60cc5",
+    "index.html": "18d54a949dd4d0ddc550692cf77a7ab237f8aa2b",
     "metier.js": "bf155519bdfc1c7358b6fc3322abdcc96240710f",
     "transcript-preview.js": "aa7af9f52a79ffed70cbfbc684c6ef3ca7b22a04",
     "archive.js": "4a06fd1b297873cda254e02e48733336cccbe149",
     "memory.js": "b9e998b27de807fe3e1b7080afc7f4be0c234cbe",
-    "memory-learn.js": "5f1fe4aaeebb6fcfa2c3ea4e097a0db9331a3c61",
+    "memory-learn.js": "0372c5a9d2af5fef5673849515677a9c1e42c53f",
     "memory-manager.js": "0139cfa2aaa10da639f7dbc462c4d18e09d0f89c",
     "memory-intent.js": "2e9c6785329b6e248b306021b385bfe2e08e8553",
     "auto-memory.js": "c197cdc97612073f5c39c1369d89e144df5332b9",
     "sprints456.js": "73ff75f88df36e14c87ac8f3ec18dc5f63a6d14e",
-    "onboarding7.js": "66abe21df362beef1b8726278e4fd0489792ab75"
+    "onboarding7.js": "f3e502eedb16c82e4ebb9127efc0fae879bfe0bb"
   },
   "tools": [
     {
@@ -161,11 +161,11 @@
   },
   "new_sprints": {
     "scope": "sprints 1, 2, 3",
-    "status": "SPRINT_7_FINAL_CI_EN_COURS",
+    "status": "SPRINT_7_MOTEUR_GEMINI_NATIF_QUESTIONNAIRE_ORAL_CI_A_VALIDER",
     "known_knowledge_blocker": false,
     "production_integration": false,
-    "live_voice_test": "A_VALIDER",
-    "technical_ci": "DERNIER_COMMIT",
+    "live_voice_test": "VALIDATION_HUMAINE_EN_ATTENTE",
+    "technical_ci": "EN_COURS",
     "screenshots_mobile": "EN_ATTENTE",
     "knowledge_blocker": false,
     "real_client_records": "INTERDITS"
@@ -199,12 +199,16 @@
     "voices": [
       "Aoede",
       "Kore",
-      "Puck",
-      "Charon",
       "Leda",
       "Zephyr",
       "Sulafat",
-      "Fenrir"
+      "Achernar",
+      "Puck",
+      "Charon",
+      "Fenrir",
+      "Orus",
+      "Achird",
+      "Algieba"
     ],
     "main_language": "fr-FR_IMMUABLE",
     "secondary": [
@@ -216,12 +220,15 @@
     ],
     "vocabulary": "Utilise exclusivement la confirmation de mémoire existante.",
     "persistence": "angel_v2_preferences propriétaire dans Supabase TEST, validation et relecture par l'Edge sécurisé",
-    "barge_in": "TOUJOURS ACTIVE — aucun réglage contraire",
-    "manual_mic_stop": "TOUJOURS ACTIF — aucun réglage contraire",
+    "barge_in": "INCONDITIONNEL",
+    "manual_mic_stop": "INCONDITIONNEL",
     "status": "TECHNIQUE_A_VALIDER_EN_CI_ET_HUMAIN",
     "limitations": "TTS aperçu navigateur indicatif, confirmation de langues détectées par heuristiques fortes, essais iPhone à faire",
     "voice_wizard": "Bienvenue au clic en voix locale, commandes orales Suivant/Précédent/Répète, choix de voix, métier et tutoiement ; sauvegarde uniquement par clic humain.",
     "manual_stop": "Micro et voix toujours coupables à tout instant, bouton et commande Arrête le micro non désactivables.",
-    "human_tests": "A_VERIFIER_SUR_SAFARI_ET_ORDINATEUR"
+    "human_tests": "EN_ATTENTE",
+    "gendered_voice_selection": "6 voix féminines natives + 6 voix masculines natives issues de Google Live",
+    "welcome": "Google Gemini Live après setupComplete, aucune synthèse navigateur",
+    "oral_flow": "Six étapes successives question par question entièrement à la voix, mots techniques via mémoire existante validés par formule oui je confirme ce mot, profil final validé par formule explicite"
   }
 }
