@@ -116,6 +116,8 @@ function buildUI(){
         <button class="secondary" id="angel-find-appointments" type="button">Rendez-vous du jour</button>
         <button class="secondary" id="angel-find-next-appointment" type="button">Prochain rendez-vous</button>
         <button class="secondary" id="angel-find-devis" type="button">Lister tous mes devis TEST</button>
+        <button class="secondary" id="angel-find-reports" type="button">Signalements chantier TEST</button>
+        <button class="secondary" id="angel-find-modules" type="button">État des modules TEST</button>
         <button class="secondary" id="angel-briefing" type="button">Briefing du jour</button>
         <button class="secondary" id="angel-plan-lecture" type="button">Tester 3 consultations</button>
       </div>
@@ -147,11 +149,45 @@ function buildUI(){
         </div>
         <div class="actions"><button type="submit" class="secondary" id="angel-rdv-prepare">Préparer, puis confirmer</button></div>
       </form>
+      <form id="angel-manual-invoice">
+        <h2 style="font-size:17px;margin:22px 0 4px">Aperçu facture — jamais émise</h2>
+        <p class="muted">La facture n'est pas enregistrée et n'a aucun numéro légal. Indique les trois montants précis.</p>
+        <label for="angel-invoice-title">Libellé facultatif</label><input id="angel-invoice-title" maxlength="115" placeholder="Exemple : acompte SPÉCIMEN"/>
+        <div class="line">
+          <div><label for="angel-invoice-ht">Montant HT (€)</label><input type="number" step="0.01" min="0" id="angel-invoice-ht" required/></div>
+          <div><label for="angel-invoice-tax">Montant TVA (€)</label><input type="number" step="0.01" min="0" id="angel-invoice-tax" required/></div>
+        </div>
+        <label for="angel-invoice-ttc">Montant TTC (€)</label><input type="number" step="0.01" min="0" id="angel-invoice-ttc" required/>
+        <div class="actions"><button class="secondary" type="submit">Afficher l'aperçu, sans créer de facture</button></div>
+      </form>
+      <form id="angel-manual-report">
+        <h2 style="font-size:17px;margin:22px 0 4px">Signalement rattaché à un vrai chantier TEST</h2>
+        <p class="muted">Identique à la préproduction : choisir un chantier appartenant à ton compte TEST, rédiger le constat, puis confirmer par clic. Photos = noms seulement, aucun téléchargement, e-mail ou devis émis.</p>
+        <div class="actions"><button type="button" class="secondary" id="angel-report-load-sites">Charger mes chantiers</button></div>
+        <label for="angel-report-site">Chantier obligatoire</label>
+        <select id="angel-report-site" required><option value="">Charger puis choisir un chantier TEST</option></select>
+        <label for="angel-report-title">Titre du signalement</label>
+        <input id="angel-report-title" minlength="4" maxlength="120" required placeholder="Exemple : défaut de raccord"/>
+        <label for="angel-report-description">Description précise</label>
+        <textarea id="angel-report-description" required minlength="12" maxlength="1500" rows="3" placeholder="Décris le problème constaté"></textarea>
+        <div class="line">
+          <div><label for="angel-report-zone">Zone du chantier</label><input id="angel-report-zone" minlength="2" maxlength="80" required placeholder="Toiture nord"/></div>
+          <div><label for="angel-report-urgency">Urgence</label><select id="angel-report-urgency"><option value="normale">Normale</option><option value="elevee">Élevée</option><option value="critique">Critique</option></select></div>
+        </div>
+        <label for="angel-report-photos">Noms de photos (facultatif, 3 max, sans transfert)</label>
+        <input id="angel-report-photos" maxlength="300" placeholder="photo-1.jpg, photo-2.jpg"/>
+        <div id="angel-report-preview" class="quote-line" role="status">Aucun signalement préparé.</div>
+        <div class="actions">
+          <button type="submit" class="secondary" id="angel-report-prepare">Préparer le constat sans l'enregistrer</button>
+          <button type="button" class="primary" id="angel-report-confirm" disabled>Je confirme ce signalement SPÉCIMEN</button>
+          <button type="button" class="secondary" id="angel-report-cancel">Annuler</button>
+        </div>
+      </form>
     </details>
   `;
   $('voicePanel').insertAdjacentElement('afterend',container);
-  clientSelect=$('angel-client-choice');resultBox=$('angel-business-status');
-  for(const [id,action] of [['angel-find-clients','rechercher_client'],['angel-find-jobs','rechercher_chantier'],['angel-find-items','rechercher_catalogue'],['angel-find-invoices','consulter_factures'],['angel-find-appointments','consulter_rendez_vous'],['angel-find-next-appointment','consulter_rendez_vous'],['angel-find-devis','rechercher_devis'],['angel-briefing','consulter_briefing'],['angel-plan-lecture','executer_plan_lecture']]){
+  clientSelect=$('angel-client-choice');siteSelect=$('angel-report-site');resultBox=$('angel-business-status');
+  for(const [id,action] of [['angel-find-clients','rechercher_client'],['angel-find-jobs','rechercher_chantier'],['angel-find-items','rechercher_catalogue'],['angel-find-invoices','consulter_factures'],['angel-find-appointments','consulter_rendez_vous'],['angel-find-next-appointment','consulter_rendez_vous'],['angel-find-devis','rechercher_devis'],['angel-briefing','consulter_briefing'],['angel-plan-lecture','executer_plan_lecture'],['angel-find-reports','consulter_signalements_test'],['angel-find-modules','consulter_modules_test']]){
     $(id).addEventListener('click',()=>{
       const args=id==='angel-find-invoices'?{filtre:'en_attente'}:
         id==='angel-find-next-appointment'?{filtre:'prochain'}:
@@ -162,6 +198,15 @@ function buildUI(){
   }
   $('angel-manual-quote').addEventListener('submit',event=>{event.preventDefault();void prepareManual();});
   $('angel-manual-appointment').addEventListener('submit',event=>{event.preventDefault();void prepareManualAppointment();});
+  $('angel-manual-invoice').addEventListener('submit',event=>{event.preventDefault();void prepareManualInvoice();});
+  $('angel-manual-report').addEventListener('submit',event=>{event.preventDefault();prepareSiteReport()});
+  $('angel-report-load-sites').addEventListener('click',()=>{void call('rechercher_chantier',{}).catch(e=>info('Chantiers TEST indisponibles : '+e.message,true));});
+  $('angel-report-confirm').addEventListener('click',()=>{void confirmSiteReport()});
+  $('angel-report-cancel').addEventListener('click',cancelSiteReport);
+  for(const id of ['angel-report-site','angel-report-title','angel-report-description','angel-report-zone','angel-report-urgency','angel-report-photos']){
+    $(id).addEventListener('input',invalidateSiteReport);
+    $(id).addEventListener('change',invalidateSiteReport);
+  }
   $('angel-business-confirm').addEventListener('click',()=>{void confirm()});
   $('angel-business-cancel').addEventListener('click',()=>{void cancel()});
 }
