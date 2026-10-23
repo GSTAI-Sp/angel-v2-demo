@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="theme-color" content="#ffffff"/>
 <meta name="robots" content="noindex,nofollow"/>
+<link rel="preconnect" href="https://dchunxngtdbtgxbccmlb.supabase.co" crossorigin/>
+<link rel="preconnect" href="https://generativelanguage.googleapis.com" crossorigin/>
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://dchunxngtdbtgxbccmlb.supabase.co wss://generativelanguage.googleapis.com; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline' blob:; media-src blob:; img-src 'self' blob:; base-uri 'self'; object-src 'none'; form-action 'none'"/>
 <title>Ángel Live · Démo SpeedArti</title>
 <style>
@@ -104,6 +106,7 @@ const memories=window.AngelLiveMemories;
 const learning=window.AngelMemoryLearning;
 const manager=window.AngelMemoryManager;
 let jwt=null, socket=null,stream=null, inputCtx=null, outputCtx=null, source=null, processor=null, sink=null;
+let startupAbort=null,startupStats=null;
 let playback=[], nextPlayTime=0, starting=false, stopped=true, setupDone=false, sessionTimer=null, setupTimer=null;
 let spokenUserTurn='', calledDevisTool=false, devisRecoveryRunning=false;
 let calledBusinessTools=new Set(),businessRecoveryRunning=false;
@@ -174,6 +177,8 @@ function clearPlayback(){
   playback.forEach(x=>{try{x.stop()}catch(_){}}); playback=[];nextPlayTime=0;
 }
 function stop(){
+  if(startupAbort){startupAbort.abort();startupAbort=null;}
+  startupStats=null;
   transcripts.close();
   stopped=true;setupDone=false;
   spokenUserTurn='';calledDevisTool=false;devisRecoveryRunning=false;
@@ -237,18 +242,60 @@ async function initCapture(){
     const blobUrl=URL.createObjectURL(new Blob([workletSource],{type:'text/javascript'}));
     try{
       await inputCtx.audioWorklet.addModule(blobUrl);
+      if(stopped)return;
       processor=new AudioWorkletNode(inputCtx,'angel-mic-pcm');
       processor.port.onmessage=event=>sendPCM(event.data,rate);
       workletStarted=true;
     }catch(e){console.warn('AudioWorklet non disponible, mode compatibilité.')}
     finally{URL.revokeObjectURL(blobUrl)}
   }
+  if(stopped)return;
   if(!workletStarted){
     processor=inputCtx.createScriptProcessor(4096,1,1);
     processor.onaudioprocess=e=>sendPCM(e.inputBuffer.getChannelData(0),rate);
   }
   source.connect(processor);processor.connect(sink);sink.connect(inputCtx.destination);
   await inputCtx.resume();
+}
+// Le micro, les mémoires fraîches et le jeton Gemini démarrent au même clic.
+async function prepareLiveConnection(){
+  const controller=new AbortController(),currentJwt=jwt;
+  const started=performance.now(),timings={};
+  startupAbort=controller;
+  startupStats={started,timings};
+  const micPromise=navigator.mediaDevices.getUserMedia({
+    audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}
+  }).then(captured=>{
+    timings.micro=Math.round(performance.now()-started);
+    if(stopped||controller.signal.aborted||jwt!==currentJwt){
+      captured.getTracks().forEach(t=>t.stop());return null;
+    }
+    stream=captured;return captured;
+  });
+  const memoryPromise=memories.refresh().then(snapshot=>{
+    timings.memoires=Math.round(performance.now()-started);
+    if(!snapshot)throw new Error('Mémoires indisponibles : session vocale suspendue pour éviter des réponses fondées sur des souvenirs obsolètes.');
+    return snapshot;
+  });
+  const tokenPromise=fetch(TOKEN_ENDPOINT,{
+    method:'POST',signal:controller.signal,
+    headers:{'Authorization':'Bearer '+currentJwt,'apikey':PUBLIC_KEY,'Content-Type':'application/json'},
+    body:'{}',cache:'no-store'
+  }).then(async res=>{
+    const data=await res.json().catch(()=>({}));
+    timings.jeton=Math.round(performance.now()-started);
+    if(!res.ok||typeof data.token!=='string'){
+      const diagnostic=data.provider_http_status
+        ? ' (Google HTTP '+data.provider_http_status+' / '+(data.provider_error_category||'ERREUR')+
+          ' / '+(data.provider_error_hint||'NON_PRÉCISÉ')+')' : '';
+      throw new Error((data.error||'Impossible de créer la session : '+res.status)+diagnostic);
+    }
+    return data.token;
+  });
+  const [captured,snapshot,token]=await Promise.all([micPromise,memoryPromise,tokenPromise]);
+  if(!captured||stopped||controller.signal.aborted||jwt!==currentJwt)return null;
+  startupAbort=null;
+  return {token,snapshot,timings};
 }
 async function openLive(){
   if(starting||socket||!jwt)return;
@@ -262,19 +309,15 @@ async function openLive(){
   setState('Connexion en cours','Autorisation du microphone et ouverture de la session Live…');
   try{
     if(!window.isSecureContext)throw new Error('Une adresse HTTPS est nécessaire pour le microphone.');
-    stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
-    if(stopped)return;
-    const memorySnapshot=await memories.refresh();
-    if(!memorySnapshot)throw new Error('Mémoires indisponibles : session vocale suspendue pour éviter des réponses fondées sur des souvenirs obsolètes.');
-    if(stopped)return;
-    const res=await fetch(TOKEN_ENDPOINT,{method:'POST',headers:{'Authorization':'Bearer '+jwt,'apikey':PUBLIC_KEY,'Content-Type':'application/json'},body:'{}',cache:'no-store'});
-    const data=await res.json().catch(()=>({}));
-    if(!res.ok||typeof data.token!=='string'){const diagnostic=data.provider_http_status ? ' (Google HTTP '+data.provider_http_status+' / '+(data.provider_error_category||'ERREUR')+' / '+(data.provider_error_hint||'NON_PRÉCISÉ')+')' : '';throw new Error((data.error||'Impossible de créer la session : '+res.status)+diagnostic)}
-    if(stopped)return;
+    setState('Connexion optimisée','Microphone, mémoires et autorisation Google démarrent en parallèle…');
+    const ready=await prepareLiveConnection();
+    if(!ready||stopped)return;
     outputCtx=new AudioContext({sampleRate:24000});
     await outputCtx.resume();
+    if(stopped)return;
     await initCapture();
-    const ws=new WebSocket(WS_URL+'?access_token='+encodeURIComponent(data.token));
+    if(stopped)return;
+    const ws=new WebSocket(WS_URL+'?access_token='+encodeURIComponent(ready.token));
     // Google peut renvoyer les messages JSON sous forme de trames WebSocket binaires.
     ws.binaryType='arraybuffer';
     socket=ws;
@@ -319,9 +362,15 @@ async function openLive(){
         return;
       }
       if(data.setupComplete){
+        if(stopped)return;
         setupDone=true;
         if(setupTimer){clearTimeout(setupTimer);setupTimer=null}
-        setState('Je t’écoute','Connexion établie. Parle normalement : tu peux interrompre Ángel.','active');
+        const measures=startupStats;
+        const report=measures?
+          ('Connexion en '+((performance.now()-measures.started)/1000).toFixed(1)+' s '+
+          '(micro '+(measures.timings.micro??'?')+' ms, mémoires '+(measures.timings.memoires??'?')+
+          ' ms, autorisation '+(measures.timings.jeton??'?')+' ms ; étapes parallèles).'):'Connexion établie.';
+        setState('Je t’écoute',report+' Parle normalement : tu peux interrompre Ángel.','active');
         return;
       }
       if(data.toolCall?.functionCalls){
