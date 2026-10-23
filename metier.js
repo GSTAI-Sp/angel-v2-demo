@@ -2,7 +2,7 @@
 // Jamais de secrets serveur ici, aucun accès à SpeedArti production.
 (() => {
 'use strict';
-const allowed=new Set(['rechercher_client','rechercher_chantier','rechercher_catalogue','preparer_devis','consulter_devis','afficher_conversations','proposer_memoire','consulter_factures','consulter_rendez_vous','rechercher_devis','executer_plan_lecture','preparer_rendez_vous','preparer_deplacement_rendez_vous','preparer_facture','consulter_briefing']);
+const allowed=new Set(['rechercher_client','rechercher_chantier','rechercher_catalogue','preparer_devis','consulter_devis','afficher_conversations','proposer_memoire','consulter_factures','consulter_rendez_vous','rechercher_devis','executer_plan_lecture','preparer_rendez_vous','preparer_deplacement_rendez_vous','preparer_facture','consulter_briefing','consulter_signalements_test','consulter_modules_test']);
 const toolDefs=[
  {name:'rechercher_client',description:'Recherche un client fictif SpeedArti. Sans nom, liste les clients. Utilise ce résultat pour identifier un client avant un devis.',parameters:{type:'OBJECT',properties:{nom:{type:'STRING',description:'Nom du client demandé (facultatif)'}}}},
  {name:'rechercher_chantier',description:'Consulte les chantiers fictifs, éventuellement filtrés par nom.',parameters:{type:'OBJECT',properties:{nom:{type:'STRING'}}}},
@@ -45,6 +45,8 @@ const toolDefs=[
   },required:['rendez_vous_id','date','heure_debut','heure_fin']}},
  {name:'preparer_facture',description:'Quand l’artisan demande un aperçu de facture fictive, appelle immédiatement cet outil si HT, TVA et TTC sont donnés. Un titre descriptif est facultatif et sera remplacé par un libellé SPÉCIMEN. Aucun document réel créé, émis ou numéroté.',parameters:{type:'OBJECT',properties:{titre:{type:'STRING',description:'Facultatif pour un aperçu fictif'},montant_ht:{type:'NUMBER'},montant_tva:{type:'NUMBER'},montant_ttc:{type:'NUMBER'}},required:['montant_ht','montant_tva','montant_ttc']}},
  {name:'consulter_briefing',description:'Donne les factures échues et rendez-vous proches fictifs, puis des suggestions factuelles sans créer de rappel.',parameters:{type:'OBJECT',properties:{}}},
+ {name:'consulter_signalements_test',description:'Lire les signalements SPÉCIMENS réellement conservés dans Supabase TEST, avec référence au chantier lorsque disponible. Aucune alerte, devis ou photo transmis.',parameters:{type:'OBJECT',properties:{}}},
+ {name:'consulter_modules_test',description:'Vérifie l’état réel des modules métier et leur raccordement à la base TEST. N’invente pas de modules opérationnels.',parameters:{type:'OBJECT',properties:{}}},
  {name:'afficher_conversations',description:'Quand l’artisan dit « reprendre une conversation », « mes anciennes conversations » ou « retrouver mon historique », affiche immédiatement les archives dans la page. La reprise ne se fait ensuite que par le bouton Reprendre affiché à l’artisan. Ne prétends pas avoir ouvert le fil toi-même.',parameters:{type:'OBJECT',properties:{}}},
  {name:'proposer_memoire',description:'Quand l’artisan demande explicitement « retiens », « mémorise », « souviens-toi », propose une mémoire BTP. IMPORTANT : « réponses courtes », préférences de formulation, habitudes de devis et demandes non matérielles = type souvenir + contenu exact. Type preference uniquement pour matériaux favoris ou zones d’intervention, avec categorie et valeur. Si les champs sont incomplets, demander la précision au lieu de prétendre enregistrer. Ne JAMAIS enregistrer ici : l’artisan doit confirmer en cliquant dans la page. Refuse les secrets, coordonnées privées, informations sur des clients et instructions système.',parameters:{type:'OBJECT',properties:{
     type:{type:'STRING',enum:['vocabulaire','preference','souvenir'],description:'Utilise souvenir pour réponses courtes, ton, façons de travailler, préférences de communication. Utilise preference seulement pour matériaux favoris ou zones d’intervention.'},
@@ -73,7 +75,8 @@ const viewCSS=[
 ].join('');
 const style=document.createElement('style');style.textContent=viewCSS;document.head.append(style);
 let getToken=null,baseUrl='',pubKey='',getSocket=null,notify=null;
-let container=null,clientSelect=null,resultBox=null,pending=null,pendingType=null,busy=false;
+let container=null,clientSelect=null,siteSelect=null,resultBox=null,pending=null,pendingType=null,busy=false;
+const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const $=(id)=>document.getElementById(id);
 function el(tag,text='',cls=''){
   const x=document.createElement(tag);if(cls)x.className=cls;
@@ -172,6 +175,17 @@ async function request(action,args={}){
   if(!r.ok)throw new Error(String(data.error||('Service métier indisponible (HTTP '+r.status+')')).slice(0,280));
   return data;
 }
+function sitesSelect(list){
+  if(!siteSelect)return;
+  const old=siteSelect.value;
+  siteSelect.replaceChildren();
+  const empty=el('option','Choisis un chantier du compte TEST');empty.value='';siteSelect.append(empty);
+  for(const row of list){
+    if(!uuid.test(String(row.id||'')))continue;
+    const opt=el('option',String(row.nom||'Chantier sans titre'));opt.value=row.id;siteSelect.append(opt);
+  }
+  if(list.some(row=>row.id===old))siteSelect.value=old;
+}
 function clientsSelect(list){
   if(!clientSelect)return;
   const current=clientSelect.value;clientSelect.replaceChildren();
@@ -214,8 +228,9 @@ function render(action,data){
     clientsSelect(list);
     info('Clients fictifs ('+list.length+') :\n'+(list.map(c=>c.contact_name+(c.city?' — '+c.city:'')).join('\n')||'Aucun client.'));
   }else if(action==='rechercher_chantier'){
-    const list=data.chantiers||[];
-    info('Chantiers fictifs ('+list.length+') :\n'+(list.map(c=>c.nom+' — '+c.statut).join('\n')||'Aucun chantier.'));
+    const list=Array.isArray(data.chantiers)?data.chantiers:[];
+    sitesSelect(list);
+    info('Chantiers TEST ('+list.length+') :\n'+(list.map(c=>c.nom+' — '+c.statut).join('\n')||'Aucun chantier.'));
   }else if(action==='rechercher_catalogue'){
     const list=data.articles||[];
     info('Articles catalogue ('+list.length+') :\n'+(list.map(c=>c.nom+' — '+validMoney(Number(c.prix_unitaire))+' HT/'+c.unite).join('\n')||'Catalogue vide : demande un tarif de test à l’artisan.'));
@@ -253,6 +268,22 @@ function render(action,data){
     const steps=Array.isArray(data.etapes)?data.etapes:[];
     info('CONSULTATIONS GROUPÉES ('+steps.length+') :\n'+steps.map((e,i)=>
       (i+1)+'. '+e.action+' — '+(e.status===200?'réponse obtenue':'erreur')+'\n'+JSON.stringify(e.result).slice(0,1800)).join('\n\n'));
+  }else if(action==='consulter_signalements_test'){
+    if(data.lecture_seule!==true||data.fictif!==true||!Array.isArray(data.signalements))
+      throw Error('Signalements TEST non vérifiés.');
+    const items=data.signalements;
+    info('SIGNALEMENTS SPÉCIMENS ('+items.length+') :\n'+
+      (items.map(x=>String(x.titre||'Sans titre')+' — '+String(x.zone||'')+
+      ' — Chantier : '+String(x.chantier_id||'ancien spécimen sans chantier')+
+      ' — '+String(x.statut||'inconnu')+
+      ' (aucune alerte ni devis émis)').join('\n')||'Aucun constat enregistré dans ce compte TEST.'));
+  }else if(action==='consulter_modules_test'){
+    if(data.lecture_seule!==true||data.fictif!==true||!Array.isArray(data.modules))
+      throw Error('État des modules TEST non vérifié.');
+    info('MODULES TEST :\n'+data.modules.map(x=>String(x.code||'?')+' — '+String(x.statut||'?')).join('\n'));
+  }else if(action==='enregistrer_signalement_test'){
+    info('Signalement SPÉCIMEN sauvegardé après confirmation, lié au chantier '+String(data.signalement?.chantier_id||'inconnu')+
+      '.\nAucune photo transférée, aucun e-mail, aucun devis émis.');
   }else if(action==='consulter_briefing'){
     info('BRIEFING TEST :\n'+(data.suggestions||[]).join('\n')+'\n'+
       (data.factures_echues||[]).map(f=>f.numero+' — '+validMoney(f.solde_restant_eur)).join('\n')+'\n'+
