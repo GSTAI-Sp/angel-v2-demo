@@ -104,6 +104,17 @@ jobs:
           assert "enqueuePendingAudio" in html
           assert "flushPendingAudio" in html
           assert "Micro actif — parle maintenant" in html
+          assert '<script src="./onboarding7.js"></script>' in html
+          assert "voiceName:onboarding.getVoice()" in html
+          assert "onboarding.languageInstruction()" in html
+          assert "onboarding.observeUtterance(thisRequest)" in html
+          assert "onboarding.resetConversationLanguage()" in html
+          onb = Path("onboarding7.js").read_text(encoding="utf8")
+          assert "manual_mic_stop_enabled:true" in onb
+          assert "barge_in_enabled:true" in onb
+          assert "proposeWord" in onb
+          assert "fr-FR" in onb
+          assert "cfg.stopVoice?.()" in onb
           assert "preconnect" in html
           assert "Lister tous mes devis TEST" in metier
           assert len(js) > 2500
@@ -114,6 +125,7 @@ jobs:
           node --check /tmp/angel-v2-client.js
           node --check metier.js
           node --check sprints456.js
+          node --check onboarding7.js
           node --check transcript-preview.js
           node --check archive.js
           node --check memory.js
@@ -131,4 +143,5 @@ jobs:
           node incident-wake-routing.test.cjs
           node live-startup-performance.test.cjs
           node instant-micro-buffer.test.cjs
+          node onboarding7.test.cjs
           node scripts/quality-gate.cjs
