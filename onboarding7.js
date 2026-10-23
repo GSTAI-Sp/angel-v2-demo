@@ -321,7 +321,7 @@ function dispatchLanguage(accepted){
   'Langue temporaire confirmée ; retour au français sur simple demande.');
 }
 function wizardVoiceCommand(text){
- if(!connected||panel.hidden||typeof text!=='string')return false;
+ if(!connected||!panel||panel.hidden||typeof text!=='string')return false;
  const t=text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
  if(/^(?:angel[, ]+)?(?:etape suivante|suivant|continue|on continue)[.! ]*$/.test(t)){
   collect();step=Math.min(step+1,5);render();message('Étape suivante affichée. Rien enregistré.');return true;
