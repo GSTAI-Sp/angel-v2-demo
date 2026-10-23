@@ -8,11 +8,11 @@
   "production_approval": false,
   "completion_status": "EN_ATTENTE_TESTS_HUMAINS",
   "last_review": "2026-10-22",
-  "review_reason": "Optimisation latence après retour utilisateur: la permission getUserMedia, la lecture fraîche des mémoires TEST et la demande du jeton Google démarrent simultanément au clic micro, au lieu d'être séquentielles. AbortController et garde de JWT libèrent le micro tardif. Temps total et trois délais partiels affichés sans données sensibles.",
-  "test_limitations": "Tests automatisés de concurrence et d'annulation sans mesure réelle réseau sur iPhone ou ordinateur. La permission navigateur, Supabase, Google et le setup WebSocket peuvent toujours être lents. Les souvenirs actuels restent obligatoires à chaque session et aucun jeton n'est mis en cache.",
+  "review_reason": "Retour terrain iPhone : après parallélisation des requêtes, l'état Initialisation Gemini Live reste lent. Nouvelle architecture de prise de parole immédiate après autorisation micro : capture PCM dès la permission, tampon volatile RAM 20 secondes pendant lecture des souvenirs/jeton/handshake, restitution FIFO après setupComplete, aucun envoi prématuré et purge à Stop.",
+  "test_limitations": "L'utilisateur peut parler après l'autorisation du micro et les premières paroles sont tamponnées en RAM pendant au maximum 20 secondes. Ni l'autorisation navigateur ni l'initialisation du moteur IA ne peuvent être rendues instantanées; la réponse de Gemini commence après la connexion et l'écoulement du tampon. Tests automatiques ciblés, essai réel iPhone à confirmer.",
   "changes_log": "docs/angel-v2/CHANGELOG_BROUILLON.md",
   "tracked_sources": {
-    "index.html": "ce52eea215dfc43e6b37b251779280061ec51248",
+    "index.html": "f17d7457223a112a0044dadb0860c9e69840975d",
     "metier.js": "bf155519bdfc1c7358b6fc3322abdcc96240710f",
     "transcript-preview.js": "aa7af9f52a79ffed70cbfbc684c6ef3ca7b22a04",
     "archive.js": "4a06fd1b297873cda254e02e48733336cccbe149",
@@ -160,11 +160,11 @@
   },
   "new_sprints": {
     "scope": "sprints 1, 2, 3",
-    "status": "OPTIMISATION_LATENCE_CLIC_MICRO_EN_CI",
+    "status": "MICRO_PAROLE_IMMEDIATE_BUFFER_RAM_CI_EN_ATTENTE",
     "known_knowledge_blocker": false,
     "production_integration": false,
-    "live_voice_test": "PERFORMANCE_A_VALIDER",
-    "technical_ci": "EN_ATTENTE",
+    "live_voice_test": "IPHONE_RETEST_REQUIS",
+    "technical_ci": "EN_ATTENTE_SUR_CE_COMMIT",
     "screenshots_mobile": "EN_ATTENTE",
     "knowledge_blocker": false,
     "real_client_records": "INTERDITS"
@@ -180,8 +180,9 @@
   },
   "startup_performance": {
     "before": "Permission micro puis mémoire TEST puis jeton Google successifs",
-    "after": "Trois prérequis en parallèle et handshake WebSocket ensuite",
-    "metrics": "Temps total du clic à setupComplete affiché avec durées micro/mémoire/jeton",
-    "human_test": "EN_ATTENTE"
+    "after": "Micro permission → capture PCM immédiate en parallèle de mémoire TEST+jeton éphémère; tampon RAM max 20s; envoi FIFO à Gemini après setupComplete",
+    "metrics": "Statut Micro actif dès capture; connexion réelle totale affichée après setupComplete",
+    "human_test": "IPHONE_EN_ATTENTE",
+    "risks": "Si setup dépasse 20s, premiers fragments perdus et avertissement; si interruption, tampon purgé; Google reste requis pour répondre."
   }
 }
