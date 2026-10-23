@@ -115,12 +115,12 @@ jobs:
           assert "restartWithVoice" in html
           assert "confirmWord:()=>learning.confirmPendingByVoice()" in html
           assert "onboarding.onVocabSaved()" in html
+          onb = Path("onboarding7.js").read_text(encoding="utf8")
           assert "speechSynthesis" not in onb
           assert "SpeechSynthesisUtterance" not in onb
           assert "onb-gender" in onb
           assert "askGuide" in onb
           assert "questionForStep" in onb
-          onb = Path("onboarding7.js").read_text(encoding="utf8")
           assert "manual_mic_stop_enabled:true" in onb
           assert "barge_in_enabled:true" in onb
           assert "proposeWord" in onb
