@@ -105,6 +105,30 @@ async function list(){
     ' — '+x.urgence+' (alerte non envoyée, devis non émis)').join('\n')||'Aucun signalement TEST.';
  }catch(e){note(String(e.message))}
 }
+function draftAlert(){
+ const p=payload();
+ if(!valid(p))return note('Complète le constat fictif avant de copier un projet d’alerte.');
+ const message='ALERTE CHANTIER — BROUILLON TEST, NON ENVOYÉ\n'+
+  'Lieu : '+p.zone+'\nConstat : '+p.titre+'\n'+p.description+
+  '\nPriorité proposée : '+p.urgence+
+  '\nPhotos : '+p.photo_noms.length+' fichier(s) uniquement sur cet appareil (non joints)'+
+  '\nDemande : contrôle humain sur site, aucune décision technique automatisée.';
+ if(!navigator.clipboard?.writeText)return note('Copie automatique indisponible : sélectionne le texte du constat manuellement.');
+ navigator.clipboard.writeText(message).then(()=>note('Brouillon d’alerte COPIÉ : à envoyer toi-même. Aucun destinataire contacté.'))
+ .catch(()=>note('Copie indisponible : aucun message envoyé.'));
+}
+function startQuoteDraft(){
+ const p=payload();
+ if(!valid(p))return note('Complète le constat avant de préparer les informations du devis.');
+ const title=$('angel-quote-title'),desc=$('angel-quote-desc');
+ if(!title||!desc)return note('Formulaire devis TEST indisponible.');
+ title.value=('Constat chantier — '+p.titre).slice(0,170);
+ desc.value=p.description.slice(0,245);
+ const form=$('angel-manual-quote');
+ const details=form?.closest('details');if(details)details.open=true;
+ form?.scrollIntoView({behavior:'smooth',block:'start'});
+ note('Informations transférées au formulaire devis SPÉCIMEN. Choisis un client TEST, renseigne quantités, prix HT et TVA réels avant toute préparation. Aucun devis créé.');
+}
 function photoChange(){
  revoke();pending=null;$('s456-confirm').disabled=true;
  const input=$('s456-photos'),batch=[...(input.files||[])];
@@ -150,7 +174,9 @@ function init(c){
   '<label for="s456-urgency">Urgence proposée</label><select id="s456-urgency"><option value="normale">Normale</option><option value="elevee">Élevée</option><option value="critique">Critique</option></select>'+
   '<label for="s456-photos">Photos fictives (3 max, aperçu local uniquement)</label><input type="file" id="s456-photos" accept="image/jpeg,image/png,image/webp" multiple>'+
   '<div id="s456-pics"></div><div class="actions"><button class="secondary" type="submit">Préparer</button>'+
-  '<button class="primary" type="button" disabled id="s456-confirm">Confirmer le signalement SPÉCIMEN</button></div>'+
+  '<button class="primary" type="button" disabled id="s456-confirm">Confirmer le signalement SPÉCIMEN</button>'+ 
+  '<button class="secondary" type="button" id="s456-quote">Préremplir le devis SPÉCIMEN</button>'+
+  '<button class="secondary" type="button" id="s456-copy-alert">Copier le brouillon d’alerte</button></div>'+
   '<div class="out" id="s456-preview">Aucun signalement préparé.</div></form>'+
   '<button class="secondary" type="button" id="s456-list">Voir les signalements TEST</button>'+
   '<div class="out" id="s456-reports">Aucun contrôle.</div></fieldset>'+
@@ -162,6 +188,8 @@ function init(c){
  $('s456-photos').addEventListener('change',photoChange);
  $('s456-form').addEventListener('submit',e=>{e.preventDefault();prepare()});
  $('s456-confirm').addEventListener('click',()=>void save());
+ $('s456-quote').addEventListener('click',startQuoteDraft);
+ $('s456-copy-alert').addEventListener('click',draftAlert);
  for(const id of ['s456-title','s456-zone','s456-description','s456-urgency']){
   $(id).addEventListener('input',()=>{pending=null;$('s456-confirm').disabled=true});
  }
