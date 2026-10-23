@@ -128,6 +128,15 @@ jobs:
           assert "cfg.stopVoice?.()" in onb
           assert "preconnect" in html
           assert "Lister tous mes devis TEST" in metier
+          assert "Aperçu facture — jamais émise" in metier
+          assert "Signalement rattaché à un vrai chantier TEST" in metier
+          assert "consult er" not in metier
+          assert "{name:'consulter_signalements_test'" in metier
+          assert "{name:'consulter_modules_test'" in metier
+          assert "siteReportInput()" in metier
+          assert "confirmSiteReport()" in metier
+          assert "readback.signalements.some" in metier
+          assert "data.photo_fichiers_stockes!==false" in metier
           assert len(js) > 2500
           Path("/tmp/angel-v2-client.js").write_text(js, encoding="utf8")
           PY
@@ -155,4 +164,5 @@ jobs:
           node live-startup-performance.test.cjs
           node instant-micro-buffer.test.cjs
           node onboarding7.test.cjs
+          node demo-business-parity.test.cjs
           node scripts/quality-gate.cjs
