@@ -13,7 +13,7 @@ const verify=read('.github/workflows/verify.yml');
 const entry=read('index.html');
 const metier=read('metier.js');
 const expected=[
- 'index.html','metier.js','sprints456.js','transcript-preview.js','archive.js',
+ 'index.html','metier.js','sprints456.js','onboarding7.js','transcript-preview.js','archive.js',
  'memory.js','memory-learn.js','memory-manager.js','memory-intent.js','auto-memory.js'
 ];
 const sources=Object.keys(manifest.tracked_sources||{});
