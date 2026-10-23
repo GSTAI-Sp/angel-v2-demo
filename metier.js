@@ -77,6 +77,7 @@ const style=document.createElement('style');style.textContent=viewCSS;document.h
 let getToken=null,baseUrl='',pubKey='',getSocket=null,notify=null;
 let container=null,clientSelect=null,siteSelect=null,resultBox=null,pending=null,pendingType=null,busy=false;
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+let siteReportPending=null,siteReportBusy=false;
 const $=(id)=>document.getElementById(id);
 function el(tag,text='',cls=''){
   const x=document.createElement(tag);if(cls)x.className=cls;
@@ -383,6 +384,102 @@ async function prepareManual(){
   }catch(e){info('Impossible de préparer le devis : '+e.message,true);}
   finally{btn.disabled=false;}
 }
+async function prepareManualInvoice(){
+  const form=$('angel-manual-invoice'),btn=form.querySelector('button[type="submit"]');
+  if(btn.disabled)return;
+  btn.disabled=true;
+  try{
+    const values=['ht','tax','ttc'].map(k=>$('angel-invoice-'+k).value);
+    if(values.some(v=>v===''||!Number.isFinite(Number(v))||Number(v)<0))
+      throw Error('Indique HT, TVA et TTC valides, sans montant inventé.');
+    const [ht,tax,ttc]=values.map(Number);
+    if(Math.round((ht+tax)*100)!==Math.round(ttc*100))
+      throw Error('HT + TVA doit correspondre au TTC. Aucun document créé.');
+    const data=await call('preparer_facture',{
+      titre:$('angel-invoice-title').value.trim(),
+      montant_ht:ht,montant_tva:tax,montant_ttc:ttc
+    });
+    if(data.fictif!==true||data.lecture_seule!==true||
+       data.facture?.statut!=='NON_CREE'||data.facture.numero!==null)
+      throw Error('Le serveur n’a pas confirmé le statut aperçu NON CRÉÉ.');
+  }catch(e){info('Aperçu non confirmé : '+String(e.message),true)}
+  finally{btn.disabled=false}
+}
+// Exactement les mêmes champs et la même Edge Function que la préproduction React.
+// Le clic Préparer n'écrit jamais ; le clic Confirmer est indispensable.
+function siteReportInput(){
+  const chantier_id=String(siteSelect?.value||'');
+  const titre=$('angel-report-title').value.trim();
+  const description=$('angel-report-description').value.trim();
+  const zone=$('angel-report-zone').value.trim();
+  const urgence=$('angel-report-urgency').value;
+  const names=$('angel-report-photos').value.split(',').map(x=>x.trim()).filter(Boolean);
+  if(!uuid.test(chantier_id)||titre.length<4||titre.length>120||
+    description.length<12||description.length>1500||
+    zone.length<2||zone.length>80||
+    !['normale','elevee','critique'].includes(urgence)||
+    names.length>3||names.some(n=>n.length>100||/[\/\\<>]/.test(n)))
+    throw Error('Chantier TEST, titre, description et zone valides obligatoires. Trois noms de photo maximum, sans transfert.');
+  return {chantier_id,titre,description,zone,urgence,photo_noms:names};
+}
+function invalidateSiteReport(){
+  siteReportPending=null;
+  const btn=$('angel-report-confirm');
+  if(btn)btn.disabled=true;
+}
+function prepareSiteReport(){
+  try{
+    const payload=siteReportInput();
+    siteReportPending=JSON.stringify(payload);
+    $('angel-report-confirm').disabled=false;
+    const siteName=siteSelect.options[siteSelect.selectedIndex]?.textContent||'';
+    $('angel-report-preview').textContent='À CONFIRMER — SPÉCIMEN TEST\nChantier : '+
+      siteName+' ('+payload.chantier_id+')\nTitre : '+payload.titre+
+      '\nZone : '+payload.zone+'\nUrgence : '+payload.urgence+
+      '\nDescription : '+payload.description+
+      '\nNoms de photos, sans téléchargement : '+payload.photo_noms.join(', ')+
+      '\nAucun enregistrement, message, facture ou devis à ce stade.';
+    info('Signalement TEST préparé uniquement. Vérifie puis clique sur « Je confirme ce signalement SPÉCIMEN ».');
+  }catch(e){invalidateSiteReport();info('Préparation impossible : '+String(e.message),true)}
+}
+function cancelSiteReport(){
+  invalidateSiteReport();
+  $('angel-report-preview').textContent='Préparation annulée sans signalement enregistré.';
+  info('Préparation du signalement annulée. Aucune écriture.');
+}
+async function confirmSiteReport(){
+  if(!siteReportPending||siteReportBusy||busy)return;
+  let payload;
+  try{
+    payload=siteReportInput();
+    if(JSON.stringify(payload)!==siteReportPending)throw Error('Le constat a changé. Recommence par Préparer.');
+  }catch(e){invalidateSiteReport();info(String(e.message),true);return;}
+  siteReportBusy=true;
+  // Désactivation AVANT la requête : interdit le double-clic et les doublons.
+  invalidateSiteReport();
+  $('angel-report-prepare').disabled=true;
+  try{
+    const data=await request('enregistrer_signalement_test',{...payload,confirmation:true});
+    const row=data.signalement;
+    if(data.fictif!==true||!row||!uuid.test(String(row.id||''))||
+      row.chantier_id!==payload.chantier_id||
+      data.photo_fichiers_stockes!==false||data.notification_envoyee!==false||
+      data.devis_cree!==false||row.statut!=='specimen_a_valider')
+      throw Error('Le serveur n’a pas confirmé la sécurité et le rattachement au chantier TEST.');
+    const readback=await request('consulter_signalements_test',{});
+    if(readback.fictif!==true||readback.lecture_seule!==true||
+      !Array.isArray(readback.signalements)||
+      !readback.signalements.some(r=>r.id===row.id&&r.chantier_id===payload.chantier_id))
+      throw Error('Le signalement peut avoir été enregistré, mais sa relecture n’est pas confirmée. Consulte la liste avant toute nouvelle tentative.');
+    $('angel-report-preview').textContent='✓ SIGNALEMENT SPÉCIMEN VÉRIFIÉ\n'+
+      'Chantier TEST : '+payload.chantier_id+'\nID signalement : '+row.id+
+      '\nAucune alerte ni photo transférée, aucun devis émis.';
+    render('consulter_signalements_test',readback);
+  }catch(e){
+    // NE PAS réactiver Confirmer sur erreur réseau : l'écriture a peut-être réussi.
+    info('Signalement non certifié : '+String(e.message)+'. Actualise la liste avant une nouvelle préparation.',true);
+  }finally{siteReportBusy=false;$('angel-report-prepare').disabled=false}
+}
 async function prepareManualAppointment(){
   const btn=$('angel-rdv-prepare');if(btn.disabled)return;
   btn.disabled=true;
@@ -598,8 +695,11 @@ async function show(){
 }
 function hide(){
   if(!container)return;container.hidden=true;
-  pending=null;pendingType=null;$('angel-business-pending').hidden=true;info('Session terminée.');
+  pending=null;pendingType=null;invalidateSiteReport();
+  $('angel-business-pending').hidden=true;info('Session terminée.');
+  $('angel-report-preview').textContent='Aucun signalement préparé.';
   if(clientSelect)clientSelect.replaceChildren();
+  if(siteSelect)siteSelect.replaceChildren();
 }
 window.AngelBusinessDemo={init,show,hide,toolCall,toolDefs,recoverDevisRefusal,recoverBusinessVoice,speechIntent,speechDate,speechTimes,speechMoney};
 })();
