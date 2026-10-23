@@ -7,12 +7,12 @@
   "manual_acceptance": "EN_ATTENTE",
   "production_approval": false,
   "completion_status": "EN_ATTENTE_TESTS_HUMAINS",
-  "last_review": "2026-10-22",
-  "review_reason": "Retour terrain iPhone : après parallélisation des requêtes, l'état Initialisation Gemini Live reste lent. Nouvelle architecture de prise de parole immédiate après autorisation micro : capture PCM dès la permission, tampon volatile RAM 20 secondes pendant lecture des souvenirs/jeton/handshake, restitution FIFO après setupComplete, aucun envoi prématuré et purge à Stop.",
-  "test_limitations": "L'utilisateur peut parler après l'autorisation du micro et les premières paroles sont tamponnées en RAM pendant au maximum 20 secondes. Ni l'autorisation navigateur ni l'initialisation du moteur IA ne peuvent être rendues instantanées; la réponse de Gemini commence après la connexion et l'écoulement du tampon. Tests automatiques ciblés, essai réel iPhone à confirmer.",
+  "last_review": "2026-10-23",
+  "review_reason": "Sprint 7 TEST : accueil à voix haute dès bouton de configuration, huit voix Gemini Live réglables, français fr-FR principal immuable, cinq langues secondaires proposées après phrase significative avec consentement explicite, jeu de cinq mots rattaché à la mémoire existante, préférences métier et communication enregistrées par clic puis relues, interruption et STOP TOUJOURS obligatoires sans option de désactivation.",
+  "test_limitations": "Précoute indicative par voix native navigateur distincte de Google Gemini; vraie sélection Gemini testable après démarrage Live. Les expressions étrangères sont détectées prudemment, pas un système universel de reconnaissance de langue. Confirmation oui/non requise avant bascule temporaire. Essais vocaux humains, notamment Safari iOS, encore EN ATTENTE.",
   "changes_log": "docs/angel-v2/CHANGELOG_BROUILLON.md",
   "tracked_sources": {
-    "index.html": "f17d7457223a112a0044dadb0860c9e69840975d",
+    "index.html": "2dfa746861c94a95330d474fca10a8969df60cc5",
     "metier.js": "bf155519bdfc1c7358b6fc3322abdcc96240710f",
     "transcript-preview.js": "aa7af9f52a79ffed70cbfbc684c6ef3ca7b22a04",
     "archive.js": "4a06fd1b297873cda254e02e48733336cccbe149",
@@ -21,7 +21,8 @@
     "memory-manager.js": "0139cfa2aaa10da639f7dbc462c4d18e09d0f89c",
     "memory-intent.js": "2e9c6785329b6e248b306021b385bfe2e08e8553",
     "auto-memory.js": "c197cdc97612073f5c39c1369d89e144df5332b9",
-    "sprints456.js": "73ff75f88df36e14c87ac8f3ec18dc5f63a6d14e"
+    "sprints456.js": "73ff75f88df36e14c87ac8f3ec18dc5f63a6d14e",
+    "onboarding7.js": "f8b05dd521216aa57af955a2c622223a077f26b8"
   },
   "tools": [
     {
@@ -160,11 +161,11 @@
   },
   "new_sprints": {
     "scope": "sprints 1, 2, 3",
-    "status": "MICRO_PAROLE_IMMEDIATE_BUFFER_RAM_CI_EN_ATTENTE",
+    "status": "SPRINT_7_ONBOARDING_POUSSE_A_VALIDER",
     "known_knowledge_blocker": false,
     "production_integration": false,
-    "live_voice_test": "IPHONE_RETEST_REQUIS",
-    "technical_ci": "EN_ATTENTE_SUR_CE_COMMIT",
+    "live_voice_test": "ONBOARDING_VOIX_LANGUES_MEMOIRE_NON_VALIDE",
+    "technical_ci": "EN_ATTENTE_DERNIER_COMMIT",
     "screenshots_mobile": "EN_ATTENTE",
     "knowledge_blocker": false,
     "real_client_records": "INTERDITS"
@@ -184,5 +185,40 @@
     "metrics": "Statut Micro actif dès capture; connexion réelle totale affichée après setupComplete",
     "human_test": "IPHONE_EN_ATTENTE",
     "risks": "Si setup dépasse 20s, premiers fragments perdus et avertissement; si interruption, tampon purgé; Google reste requis pour répondre."
+  },
+  "sprint7": {
+    "objective": "Configuration guidée 5 minutes avec Ángel et boutons.",
+    "steps": [
+      "Bienvenue",
+      "Voix",
+      "Langue",
+      "Vocabulaire métier",
+      "Habitudes artisan",
+      "Récapitulatif"
+    ],
+    "voices": [
+      "Aoede",
+      "Kore",
+      "Puck",
+      "Charon",
+      "Leda",
+      "Zephyr",
+      "Sulafat",
+      "Fenrir"
+    ],
+    "main_language": "fr-FR_IMMUABLE",
+    "secondary": [
+      "en-US",
+      "es-US",
+      "it-IT",
+      "pt-BR",
+      "de-DE"
+    ],
+    "vocabulary": "Utilise exclusivement la confirmation de mémoire existante.",
+    "persistence": "angel_v2_preferences propriétaire dans Supabase TEST, validation et relecture par l'Edge sécurisé",
+    "barge_in": "TOUJOURS ACTIVE — aucun réglage contraire",
+    "manual_mic_stop": "TOUJOURS ACTIF — aucun réglage contraire",
+    "status": "TECHNIQUE_A_VALIDER_EN_CI_ET_HUMAIN",
+    "limitations": "TTS aperçu navigateur indicatif, confirmation de langues détectées par heuristiques fortes, essais iPhone à faire"
   }
 }
