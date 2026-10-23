@@ -339,13 +339,21 @@ async function cancel(){
   catch(e){info('Impossible d’annuler : '+e.message,true);}
   finally{busy=false;}
 }
-async function toolCall(calls){
+async function toolCall(calls,options={}){
   const responses=[];
   for(const fc of calls){
     const action=String(fc.name||''),args=(fc.args&&typeof fc.args==='object'&&!Array.isArray(fc.args))?fc.args:{};
     let reply;
     diagnostic('Dernier outil vocal demandé : '+(allowed.has(action)?action:'outil refusé')+'.');
-    if(!allowed.has(action))reply={error:'Cet outil vocal est interdit dans la démonstration.'};
+    if(options.incidentMode && ['rechercher_client','rechercher_chantier'].includes(action)){
+      // Ne jamais lancer une recherche de client/chantier sur une dictée de constat.
+      // Aucune donnée fictive ni résultat de recherche n'est inventé.
+      reply={fictif:true,lecture_seule:true,status:'formulaire_incident_prepare',
+        recherche_effectuee:false,
+        message:'Demande de constat TEST : formulaire local déjà préparé. Le client et le chantier ne sont pas obligatoires. Invite l’artisan à vérifier la description puis à préparer et confirmer via le panneau.'};
+      diagnostic('Signalement vocal : recherche '+action+' évitée, formulaire local prérempli.');
+    }
+    else if(!allowed.has(action))reply={error:'Cet outil vocal est interdit dans la démonstration.'};
     else{
       try{
         reply=action==='afficher_conversations'
