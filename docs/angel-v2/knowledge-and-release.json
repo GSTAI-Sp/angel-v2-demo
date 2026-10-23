@@ -8,12 +8,12 @@
   "production_approval": false,
   "completion_status": "EN_ATTENTE_TESTS_HUMAINS",
   "last_review": "2026-10-23",
-  "review_reason": "Correctifs terrain Sprint 7. Ancien accueil robotique SpeechSynthesis supprimé. Tout le questionnaire est maintenant posé, écouté et répondu par le vrai moteur de voix Gemini Live via setupComplete, avec six voix féminines et six masculines nommées et essais par nouvelle session. Le guide vocal recueille oui pour commencer, choix homme/femme + numéro, langue, cinq mots avec définitions et confirmation contrôlée dans les mémoires existantes, cinq habitudes métier, récapitulatif et consentement vocal exact pour enregistrer le profil. STOP manuel et interruption toujours actifs.",
-  "test_limitations": "Tests statiques et simulés du client, non essai micro réel iOS. La préécoute des vraies voix nécessite une session Gemini par sélection et peut être soumise aux permissions micro; aucun SpeechSynthesis. Des termes techniques difficiles doivent être relus/validés avant mémorisation. Les choix de profil ne sont sauvegardés que sur confirmation vocale exacte ou clic, toujours en français principal.",
+  "review_reason": "Alignement fonctionnel de la démo GitHub Pages sur les sprints métiers 12 à 15 du sous-domaine SpeedArti Thibault : mêmes endpoints propriétaires TEST, mêmes consultations clients/chantiers/catalogue/devis/factures/agenda, aperçu de facture NON CRÉÉE, préparation et confirmation clic de brouillon devis et RDV, signalement SPECIMEN lié par chantier_id réel et relecture après clic. Deux nouveaux outils Gemini en lecture seule pour état de modules et constats. Aucun outil d'écriture Gemini, aucune photo transmise, pas de production. Commits atomiques documentés et nouvelle CI de parité.",
+  "test_limitations": "CI simulée Node.js + contrôles statiques, pas encore d'essai navigateur réel du panneau métier, de la dictée ou de l'origine du futur sous-domaine. La démo indépendante donne les mêmes FONCTIONS TEST sur la même base, mais pas le cadre visuel complet de SpeedArti Thibault. Les anciens constats sans chantier restent possibles via l'ancien formulaire historique; le nouveau formulaire exige un vrai chantier propriétaire. Les factures restent des aperçus non émis et les devis des brouillons SPECIMENS.",
   "changes_log": "docs/angel-v2/CHANGELOG_BROUILLON.md",
   "tracked_sources": {
     "index.html": "18d54a949dd4d0ddc550692cf77a7ab237f8aa2b",
-    "metier.js": "bf155519bdfc1c7358b6fc3322abdcc96240710f",
+    "metier.js": "cbff96da790a74d740ca34265e782727ea3aa4ff",
     "transcript-preview.js": "aa7af9f52a79ffed70cbfbc684c6ef3ca7b22a04",
     "archive.js": "4a06fd1b297873cda254e02e48733336cccbe149",
     "memory.js": "b9e998b27de807fe3e1b7080afc7f4be0c234cbe",
@@ -129,6 +129,20 @@
       "known_limits": "Sélection unique par date et heure de départ, durée réelle conservée, ID propriétaire en TEST; exclusion des événements clients réels et clic manuel obligatoire avant modification.",
       "human_test": "EN_ATTENTE",
       "knowledge_db_synced": true
+    },
+    {
+      "name": "consulter_signalements_test",
+      "meaning": "Lecture réelle des signalements SPECIMENS appartenant au seul compte TEST; indique chantier_id lié ou spécimen historique sans chantier.",
+      "known_limits": "Aucune écriture, aucune photo transférée ni alerte envoyée ; l'affichage dépend des données réellement enregistrées du propriétaire.",
+      "human_test": "EN_ATTENTE",
+      "knowledge_db_synced": true
+    },
+    {
+      "name": "consulter_modules_test",
+      "meaning": "Consultation en lecture seule des statuts de raccordement aux vraies tables métier du compte Supabase TEST.",
+      "known_limits": "N'affiche pas comme opérationnels les modules A_RACCORDER ; la présence de lignes TEST ne signifie pas que les outils commerciaux officiels sont connectés.",
+      "human_test": "EN_ATTENTE",
+      "knowledge_db_synced": true
     }
   ],
   "security_attestations": {
@@ -143,7 +157,7 @@
     "knowledge_base_update_required": true,
     "official_integration_requires_explicit_owner_approval": true
   },
-  "knowledge_sync_evidence": "Fiches des quinze outils Gemini existants uniquement. Les trois nouvelles actions de signalement et diagnostic sont déclenchées par boutons, PAS exposées comme tools Gemini et demandent contrôle backend compte TEST. Ne jamais annoncer intégration à SpeedArti V2.",
+  "knowledge_sync_evidence": "Outils de lecture Gemini TEST ajoutés : consulter_signalements_test et consulter_modules_test, raccordés aux endpoints EXISTANTS de angel-live-metier sur la base du compte TEST. Connaissances existantes public.knowledge_base à maintenir, sans table parallèle ; confirm/report jamais exposés comme outils Gemini.",
   "knowledge_source_migration": "GSTAI-Sp/speedarti-thibault@angel-v2/supabase/migrations/20261022_angel_v2_test_knowledge_base.sql",
   "memory_reconciliation": {
     "backend": "angel-live-memory v2 TEST : mémoires triées par updated_at sans seuil importance",
@@ -230,5 +244,22 @@
     "gendered_voice_selection": "6 voix féminines natives + 6 voix masculines natives issues de Google Live",
     "welcome": "Google Gemini Live après setupComplete, aucune synthèse navigateur",
     "oral_flow": "Six étapes successives question par question entièrement à la voix, mots techniques via mémoire existante validés par formule oui je confirme ce mot, profil final validé par formule explicite"
+  },
+  "sprint_parity": {
+    "scope": "12–15",
+    "demo_repository": "GSTAI-Sp/angel-v2-demo@main",
+    "preview_repository": "GSTAI-Sp/speedarti-thibault@angel-v2",
+    "same_backend": "angel-live-metier sur Supabase TEST dchunxngtdbtgxbccmlb",
+    "client_read": "clients, chantiers, catalogue, devis, factures, rendez-vous, briefing",
+    "quote": "preparer_devis puis confirmer_devis sur clic, consulter_devis après",
+    "appointments": "preparer_rendez_vous / deplacement puis clic",
+    "invoice": "preparer_facture, NON CREE",
+    "reports": "nouveau formulaire chantier_id obligatoire, confirmer enregistrement après clic et relire le même id/chantier_id",
+    "tool_security": "Deux outils ajoutés à Gemini : consulter_signalements_test et consulter_modules_test, tous deux en lecture seule",
+    "photos": "noms uniquement, pas d'upload",
+    "perimeter": "DEMO ET PREPRODUCTION TEST SEULEMENT",
+    "human_tests": "EN_ATTENTE",
+    "subdomain": "A_CONFIGURER_PAR_ANNE_SOPHIE",
+    "commit_evidence": "Chaque changement : feat/fix/test/ci/docs avec Contexte, Évolution, Tests, Risques, Raccordement"
   }
 }
