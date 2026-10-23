@@ -1,10 +1,21 @@
 // Ángel V2 Sprint 7 — configuration guidée TEST (sans autre base de mémoire).
 (()=>{'use strict';
 const TEST='https://dchunxngtdbtgxbccmlb.supabase.co';
+// Douze voix réellement DISTINCTES Google Gemini Live, six présentations
+// féminines et six masculines (catalogue officiel Google).
 const VOICES=[
- ['Aoede','Accueillante'],['Kore','Posée'],['Puck','Dynamique'],
- ['Charon','Informative'],['Leda','Jeune'],['Zephyr','Claire'],
- ['Sulafat','Chaleureuse'],['Fenrir','Énergique']
+ ['Aoede','Femme 1 — Aoede, légère','female'],
+ ['Kore','Femme 2 — Kore, affirmée','female'],
+ ['Leda','Femme 3 — Leda, jeune','female'],
+ ['Zephyr','Femme 4 — Zephyr, claire','female'],
+ ['Sulafat','Femme 5 — Sulafat, chaleureuse','female'],
+ ['Achernar','Femme 6 — Achernar, douce','female'],
+ ['Puck','Homme 1 — Puck, dynamique','male'],
+ ['Charon','Homme 2 — Charon, posé','male'],
+ ['Fenrir','Homme 3 — Fenrir, énergique','male'],
+ ['Orus','Homme 4 — Orus, ferme','male'],
+ ['Achird','Homme 5 — Achird, amical','male'],
+ ['Algieba','Homme 6 — Algieba, fluide','male']
 ];
 const LANGUAGES=[
  ['none','Français uniquement'],['en-US','Anglais'],['es-US','Espagnol'],
@@ -31,30 +42,62 @@ let cfg=null,panel=null,profile={...BASIC},draft={...BASIC},step=0;
 let busy=false,notice=null,quiz=0,lastWord=null,wordCount=0;
 let proposedLanguage=null,sessionLanguage='fr-FR',guideSpeaking=false;
 let draftApplied=false,connected=false,initiated=false;
+let voiceGender='female',habitIndex=0,quizTerm='',quizDefinition='',quizWaitingForConfirmation=false;
+let spokenStepKey='',lastQuestion='',onboardingLiveReady=false;
 const $=id=>document.getElementById(id);
 const elt=(tag,text)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=text;return el};
 function message(text,error=false){
  if(notice){notice.textContent=text;notice.style.color=error?'#a62b3c':'#305a83'}
 }
+// La seule voix d'Ángel est Gemini Live : jamais SpeechSynthesis de Safari.
 function voiceStop(){
- if(typeof speechSynthesis!=='undefined')speechSynthesis.cancel();
  guideSpeaking=false;
+ cfg?.interruptAudio?.();
 }
-function speak(text,preview=false){
- voiceStop();
- if(!('speechSynthesis' in window)||!('SpeechSynthesisUtterance' in window)){
-  message('Lecture vocale locale indisponible dans ce navigateur ; suis le guide à l’écran.',true);return false;
+function questionForStep(){
+ if(step===0)return 'Bonjour, bienvenue sur SpeedArti ! Je suis Ángel. Nous allons me personnaliser en environ cinq minutes, exclusivement en français. Tu peux toujours m’interrompre ou couper le micro. Souhaites-tu commencer ?';
+ if(step===1){
+  const v=VOICES.filter(row=>row[2]===voiceGender).map((x,i)=>(i+1)+': '+x[0]).join(', ');
+  return 'Préférez-vous une voix de femme ou une voix d’homme ? '+(voiceGender==='female'?'Voix féminines':'Voix masculines')+' disponibles : '+v+'. Dis par exemple « voix femme deux » ou « voix homme trois », et je te proposerai un essai avec cette voix réelle.';
  }
- const utterance=new SpeechSynthesisUtterance(text);
- utterance.lang='fr-FR';utterance.rate=.95;utterance.volume=1;
- // L'aperçu TTS est celui du navigateur. Il n'imite pas la voix Google Gemini.
- const french=speechSynthesis.getVoices().filter(v=>v.lang.toLowerCase().startsWith('fr'));
- if(french.length)utterance.voice=french[0];
- utterance.onend=()=>{guideSpeaking=false};
- guideSpeaking=true;
- speechSynthesis.speak(utterance);
- if(preview)message('Écoute indicative du téléphone, pas un échantillon Gemini. Utilise « Tester avec Ángel » pour entendre la voix choisie.');
- return true;
+ if(step===2)return 'Le français restera toujours ma langue principale. Souhaites-tu une autre langue ponctuelle : anglais, espagnol, italien, portugais ou allemand, ou seulement le français ?';
+ if(step===3){
+  if(quizWaitingForConfirmation)return 'J’ai préparé ce mot dans ta mémoire existante. Souhaites-tu vraiment l’enregistrer ? Dis précisément « oui je confirme ce mot », ou dis « non » pour l’annuler.';
+  if(quizTerm)return 'Merci. Que signifie exactement le mot '+quizTerm+' dans ton métier ?';
+  const prompts=QUESTIONS[draft.primary_trade]||QUESTIONS.general;
+  return 'Petit jeu du vocabulaire, défi '+(quiz+1)+' sur cinq. '+prompts[quiz%prompts.length]+'. Dis par exemple « mon mot est ... » ou dis « passer » si tu ne souhaites rien ajouter.';
+ }
+ if(step===4){
+  const qs=[
+   'Quel est ton métier principal : couvreur, charpentier, plombier, électricien, maçon, plaquiste, terrassier ou menuisier ?',
+   'Préfères-tu que je te tutoie ou que je te vouvoie ?',
+   'Souhaites-tu des réponses courtes ou détaillées ?',
+   'Préfères-tu des explications pour débutant ou pour professionnel ?',
+   'Ton unité préférée à afficher : mètres carrés, mètres cubes, mètres linéaires ou unités ?'
+  ];
+  return qs[habitIndex]||'Tes habitudes sont renseignées. Dis suivant pour voir le résumé.';
+ }
+ return 'Voici ton récapitulatif à l’écran. Tu gardes le français principal, et tu peux toujours m’interrompre ou arrêter le micro. Si tout est correct, dis exactement « oui je confirme et j’enregistre mes réglages ». Ou demande une correction.';
+}
+function askGuide(force=false){
+ if(!connected||!panel||panel.hidden||!cfg?.isReady?.())return false;
+ const question=questionForStep();
+ if(!force&&question===lastQuestion)return true;
+ lastQuestion=question;
+ return cfg.sendGuide?.('QUESTION DU GUIDE DE PARAMÉTRAGE. Tu es Ángel, la voix native Google Gemini Live configurée dans cette session. Réponds EN FRANÇAIS, avec ta vraie voix audio Gemini et en une seule question. Dis exactement ou reformule très légèrement : '+question+
+ ' Ne cherche pas de client ni de chantier. Écoute la réponse et attends, l’interface enregistre les choix dans son brouillon. Le micro et l’interruption restent toujours actifs.')===true;
+}
+function onLiveReady(){
+ onboardingLiveReady=true;
+ if(panel&&!panel.hidden){lastQuestion='';askGuide(true);}
+}
+function speak(text){
+ if(!cfg?.isReady?.()){
+  message('Connexion à la vraie voix Google Gemini Live en cours. Aucune voix robotique du téléphone ne sera utilisée.');
+  return false;
+ }
+ return cfg.sendGuide?.('Avec ta voix native GEMINI LIVE en français, dis : '+text+
+  ' Pose ensuite une seule question si la configuration est ouverte.')===true;
 }
 async function call(action,args={}){
  if(!cfg?.getToken?.())throw Error('Reconnecte-toi au compte TEST.');
@@ -134,19 +177,19 @@ const field=(title,element)=>{
 function buttons(){
  const actions=elt('div');actions.className='actions';
  const back=elt('button','← Précédent');back.type='button';back.className='secondary';
- back.disabled=step===0;back.onclick=()=>{voiceStop();collect();step--;render()};
+ back.disabled=step===0;back.onclick=()=>{collect();step--;lastQuestion='';render()};
  const next=elt('button',step===5?'Enregistrer mes réglages':'Continuer →');
  next.type='button';next.className='primary';
  next.onclick=async()=>{
-  voiceStop();collect();
+  collect();
   if(step===5){
    if(await saveProfile(true)){panel.hidden=true;message('Configuration terminée. Pour modifier tes réglages, rouvre Configurer Ángel.');}
-  }else{step++;render()}
+  }else{step++;lastQuestion='';render()}
  };
  const later=elt('button','Enregistrer et terminer plus tard');later.type='button';later.className='secondary';
- later.onclick=async()=>{voiceStop();collect();if(await saveProfile(false))panel.hidden=true;};
+ later.onclick=async()=>{collect();if(await saveProfile(false))panel.hidden=true;};
  const skip=elt('button','Passer cette étape');skip.type='button';skip.className='secondary';
- skip.onclick=()=>{voiceStop();step=Math.min(5,step+1);render()};
+ skip.onclick=()=>{step=Math.min(5,step+1);lastQuestion='';render()};
  const stop=elt('button','■ Couper immédiatement Ángel');stop.type='button';stop.className='secondary';
  stop.onclick=()=>{
   voiceStop();
@@ -159,6 +202,7 @@ function buttons(){
 }
 function collect(){
  const voice=$('onb-voice');if(voice)draft.voice_name=voice.value;
+ const gender=$('onb-gender');if(gender)voiceGender=gender.value;
  for(const key of ['secondary_language','primary_trade','address_mode','reply_style','expertise_level','preferred_unit']){
   const el=$('onb-'+key);if(el)draft[key]=el.value;
  }
@@ -178,22 +222,28 @@ function render(){
  if(step===0){
   body.append(elt('p','Bonjour ! Je suis Ángel, ton assistante SpeedArti. Ensemble, nous allons personnaliser ma voix, mes langues et mes expressions métier en cinq minutes environ. Tu peux me couper à tout instant.'));
   const say=elt('button','▶ Ángel, souhaite-moi la bienvenue');say.type='button';say.className='secondary';
-  say.onclick=()=>speak('Bonjour et bienvenue sur SpeedArti ! Je suis Ángel, votre assistante. En cinq minutes, nous allons choisir ma voix, garder le français comme langue principale et apprendre vos expressions de chantier. Vous pouvez toujours m’interrompre ou couper le microphone.');
+  say.onclick=()=>{lastQuestion='';askGuide(true)};
   body.append(say);
  }
  if(step===1){
-  body.append(field('Voix Gemini Live',select('onb-voice',VOICES,draft.voice_name)));
-  const preview=elt('button','▶ Écoute indicative sur cet appareil');preview.type='button';preview.className='secondary';
-  preview.onclick=()=>{collect();speak('Bonjour, je suis Ángel. Je vous accompagne dans la gestion de vos chantiers et de votre entreprise.',true)};
-  const real=elt('button','🎙 Tester réellement cette voix avec Ángel');real.type='button';real.className='secondary';
-  real.onclick=()=>{
-   collect();voiceStop();
-   if(cfg.isLive?.())return message('Coupe d’abord la conversation existante, puis réessaie avec la nouvelle voix.');
-   message('Ouverture de Gemini Live avec la voix '+draft.voice_name+' en mode TEST. Le micro peut demander ton autorisation.');
-   cfg.startVoice?.();
+  body.append(elt('p','Choisis une vraie voix féminine ou masculine, puis parmi six voix différentes de chaque catégorie. C’est toujours le moteur Google Gemini Live qui parle, jamais la voix robotique du téléphone.'));
+  const g=select('onb-gender',[['female','Voix de femmes (6)'],['male','Voix d’hommes (6)']],voiceGender);
+  g.onchange=()=>{
+   voiceGender=g.value;draft.voice_name=VOICES.find(v=>v[2]===voiceGender)[0];
+   lastQuestion='';render();
   };
-  body.append(elt('p','Choisis librement parmi huit voix Gemini. Les exemples de synthèse du navigateur sont indicatifs : écoute la vraie voix en lançant un test Gemini. Si tu changes de voix, termine d’abord toute conversation en cours.'));
-  body.append(preview,real);
+  body.append(field('Voix de femme ou d’homme',g));
+  const choices=VOICES.filter(v=>v[2]===voiceGender);
+  const voice=select('onb-voice',choices,draft.voice_name);
+  voice.onchange=()=>{draft.voice_name=voice.value;message('Voix '+voice.value+' sélectionnée. Utilise Tester pour l’entendre réellement.')};
+  body.append(field('Choisis parmi les voix individuelles',voice));
+  const real=elt('button','▶ Écouter cette VRAIE voix avec Gemini');real.type='button';real.className='primary';
+  real.onclick=()=>{
+   collect();message('Essai de '+draft.voice_name+' avec le moteur Google Gemini Live. Connexion d’une nouvelle session, l’arrêt du micro reste accessible.');
+   cfg.restartWithVoice?.();
+  };
+  body.append(real);
+  body.append(elt('p','Pour comparer, sélectionne une autre voix et relance l’essai. La voix finale est sauvegardée seulement à ta confirmation du profil.'));
  }
  if(step===2){
   body.append(elt('p','La langue principale reste toujours le français, même après une conversation dans une autre langue.'));
@@ -247,10 +297,12 @@ function render(){
   detail.style.whiteSpace='pre-line';body.append(detail);
  }
  body.append(buttons());
+ askGuide();
 }
 async function open(){
  if(!cfg?.getToken?.())return;
  panel.hidden=false;
+ lastQuestion='';
  if(!initiated){try{await loadProfile();}catch(e){message('Préférences non disponibles : '+String(e.message),true);}}
  step=profile.onboarding_completed?0:profile.onboarding_step;
  render();panel.scrollIntoView({behavior:'smooth',block:'start'});
@@ -270,7 +322,7 @@ function resetConversationLanguage(){
  if($('onb-language-ask'))$('onb-language-ask').hidden=true;
 }
 function hide(){
- connected=false;voiceStop();resetConversationLanguage();
+ connected=false;voiceStop();resetConversationLanguage();onboardingLiveReady=false;lastQuestion='';
  panel.hidden=true;initiated=false;draft={...BASIC};profile={...BASIC};
 }
 function getVoice(){return VOICES.some(v=>v[0]===draft.voice_name)?draft.voice_name:'Aoede';}
@@ -403,10 +455,12 @@ function init(config){
  const openBtn=elt('button','🎙 Configurer Ángel avec moi (5 min)');
  openBtn.id='onb-open';openBtn.className='secondary';openBtn.type='button';
  openBtn.onclick=()=>{
-  // Déclenché directement par le geste utilisateur : lecture vocale de bienvenue,
-  // sans démarrer ni autoriser silencieusement la capture du micro.
-  speak('Bonjour et bienvenue sur SpeedArti ! Je suis Ángel, votre assistante. En cinq minutes, nous allons choisir ma voix, ma langue secondaire et apprendre vos expressions métier. Le français restera ma langue principale. Vous pourrez toujours me couper à tout moment.');
+  // Le vrai micro Gemini Live démarre DIRECTEMENT sur le geste utilisateur,
+  // y compris sur Safari iOS. Pas de SpeechSynthesis locale.
+  lastQuestion='';
   void open();
+  if(!cfg.isLive?.())cfg.startVoice?.();
+  else if(cfg.isReady?.())askGuide(true);
  };
  const voicePanel=$('voicePanel');
  voicePanel.querySelector('.status')?.insertAdjacentElement('beforebegin',openBtn);
@@ -429,5 +483,6 @@ function init(config){
  window.addEventListener('pagehide',voiceStop);
 }
 window.AngelOnboarding7={init,show,hide,open,getVoice,languageInstruction,observeUtterance,
- voiceStop,resetConversationLanguage,refreshVocabCount,detectedCandidate,dispatchLanguage};
+ voiceStop,resetConversationLanguage,refreshVocabCount,detectedCandidate,dispatchLanguage,
+ onLiveReady,askGuide,questionForStep};
 })();
