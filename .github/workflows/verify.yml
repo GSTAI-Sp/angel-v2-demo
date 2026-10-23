@@ -49,7 +49,9 @@ jobs:
           assert "AngelMemoryIntent" in learning
           assert "transcripts.setFinalUserHandler" in learning
           assert "learning.init({baseUrl:BASE_URL" in html
-          assert "transcripts,onSaved:()=>manager.refresh()});" in html
+          assert "onSaved:async()=>{await onboarding.onVocabSaved();await manager.refresh()}" in html
+          assert "confirmPendingByVoice" in learning
+          assert "cancelPendingByVoice" in learning
           assert "AngelMemoryLearning.propose(args)" in metier
           assert "learning.init(" in html
           assert "confirmation:true" in learning
@@ -109,6 +111,15 @@ jobs:
           assert "onboarding.languageInstruction()" in html
           assert "onboarding.observeUtterance(thisRequest)" in html
           assert "onboarding.resetConversationLanguage()" in html
+          assert "onboarding.onLiveReady()" in html
+          assert "restartWithVoice" in html
+          assert "confirmWord:()=>learning.confirmPendingByVoice()" in html
+          assert "onboarding.onVocabSaved()" in html
+          assert "speechSynthesis" not in onb
+          assert "SpeechSynthesisUtterance" not in onb
+          assert "onb-gender" in onb
+          assert "askGuide" in onb
+          assert "questionForStep" in onb
           onb = Path("onboarding7.js").read_text(encoding="utf8")
           assert "manual_mic_stop_enabled:true" in onb
           assert "barge_in_enabled:true" in onb
