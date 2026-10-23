@@ -432,6 +432,9 @@ async function openLive(){
           (hadClippedAudio
             ?' Attention : le début de ta phrase a dépassé 20 secondes de connexion ; répète-la si nécessaire.'
             :' Ángel traite maintenant ce que tu as dit depuis le clic sur le micro.'),'active');
+        // Le guide utilise la vraie voix native de CETTE session Gemini et
+        // commence directement par la première question au lieu du TTS Safari.
+        onboarding.onLiveReady();
         return;
       }
       if(data.toolCall?.functionCalls){
@@ -473,12 +476,14 @@ async function openLive(){
           transcripts.turnComplete();
           spokenUserTurn='';calledDevisTool=false;calledBusinessTools.clear();
           setState('Je t’écoute','Tu peux continuer la conversation.','active');
-          if(!alreadyCalled)void correctDevisAfterRefusal(thisRequest,assistantReply);
-          if(expectedAction&&!businessToolAlreadyCalled)void correctBusinessAfterTurn(thisRequest);
-          // Sprint 6 : dictée de constat sans action serveur.
-          extras.voiceDraft(thisRequest);
-          // Sprint 7 : langue secondaire : confirmation oui/non ou retour au français.
-          onboarding.observeUtterance(thisRequest);
+          // Priorité au paramétrage : lorsque l'artisan répond à une question du
+          // guide, ne pas déclencher les recherches ou préparations métier.
+          const handledByOnboarding=onboarding.observeUtterance(thisRequest);
+          if(!handledByOnboarding){
+            if(!alreadyCalled)void correctDevisAfterRefusal(thisRequest,assistantReply);
+            if(expectedAction&&!businessToolAlreadyCalled)void correctBusinessAfterTurn(thisRequest);
+            extras.voiceDraft(thisRequest);
+          }
         }
       }
     };
@@ -547,7 +552,21 @@ extras.init({baseUrl:BASE_URL,publicKey:PUBLIC_KEY,getToken:()=>jwt,
 onboarding.init({baseUrl:BASE_URL,publicKey:PUBLIC_KEY,getToken:()=>jwt,
   isLive:()=>!!socket&&!stopped,
   startVoice:()=>{if(!socket&&!stopped)return;void openLive()},
+  restartWithVoice:()=>{
+    // Nécessaire pour entendre différentes PERSONNES vocales Gemini :
+    // la voix n'est configurable qu'au premier setup de chaque session.
+    stop();void openLive();
+  },
+  isReady:()=>!!socket&&setupDone&&!stopped&&socket.readyState===WebSocket.OPEN,
+  interruptAudio:()=>clearPlayback(),
   stopVoice:()=>{stop();setState('Micro coupé','Ángel a été arrêtée immédiatement.');},
+  confirmWord:()=>learning.confirmPendingByVoice(),
+  cancelWord:()=>learning.cancel?.(),
+  sendGuide:(text)=>{
+    if(stopped||!setupDone||!socket||socket.readyState!==WebSocket.OPEN)return false;
+    socket.send(JSON.stringify({clientContent:{turns:[{role:'user',parts:[{text}]}],turnComplete:true}}));
+    return true;
+  },
   sendLive:(text)=>{
     if(stopped||!setupDone||!socket||socket.readyState!==WebSocket.OPEN)return false;
     socket.send(JSON.stringify({clientContent:{turns:[{role:'user',parts:[{text}]}],turnComplete:true}}));
