@@ -68,7 +68,7 @@ jobs:
           assert "openPicker()" in metier
           assert 'transcripts.turnComplete()' in html
           assert 'tools:[{functionDeclarations:metier.toolDefs}]' in html
-          assert 'metier.toolCall(data.toolCall.functionCalls)' in html
+          assert 'metier.toolCall(data.toolCall.functionCalls,{incidentMode})' in html
           assert "confirmer_devis" not in metier.split("const toolDefs=", 1)[1].split("const viewCSS=", 1)[0]
           tool_section = metier.split("const toolDefs=", 1)[1].split("const viewCSS=", 1)[0]
           for denied in ["confirmer_rendez_vous", "confirmer_deplacement_rendez_vous", "annuler_rendez_vous", "annuler_deplacement_rendez_vous"]:
@@ -90,6 +90,10 @@ jobs:
           assert "enregistrer_signalement_test" in s456
           assert "consulter_modules_test" in s456
           assert "URL.createObjectURL" in s456
+          assert "isWakeName" in s456
+          assert "isIncidentSpeech" in s456
+          assert "RÈGLE PRIORITAIRE SIGNALEMENT CHANTIER" in html
+          assert "options.incidentMode" in metier
           assert "confirmation:true" in s456
           assert "Dernier outil vocal" in metier
           assert "Lister tous mes devis TEST" in metier
@@ -115,4 +119,5 @@ jobs:
           node devis-voice-guard.test.cjs
           node metier-voice-sprints-567.test.cjs
           node sprints456.test.cjs
+          node incident-wake-routing.test.cjs
           node scripts/quality-gate.cjs
