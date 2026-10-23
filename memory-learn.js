@@ -72,7 +72,7 @@
       panel.hidden=false;
       approval.hidden=false;
       summary.textContent=pretty(proposal);
-      setStatus('⚠ NON ENREGISTRÉE — clique sur « Confirmer cette mémoire » pour la sauvegarder dans Supabase TEST.');
+      setStatus('⚠ NON ENREGISTRÉE — confirme par le bouton ou, pendant le jeu vocal, dis « oui je confirme ce mot ».');
       // Affichage immédiatement sous les boutons vocaux, jamais au bas d'un menu replié.
       panel.scrollIntoView({behavior:'smooth',block:'start'});
       return {status:'confirmation_humaine_requise',memoire:pretty(proposal),
@@ -147,6 +147,10 @@
     if(!proposal||busy||proposal.type!=='vocabulaire')
       return false;
     return await save()===true;
+  }
+  function cancelPendingByVoice(){
+    if(!proposal||proposal.type!=='vocabulaire'||busy)return false;
+    cancel();return true;
   }
   function cancel(){
     if(busy)return;
@@ -244,7 +248,7 @@
     });
     const stopButton=document.getElementById('stopBtn');
     stopButton.insertAdjacentElement('afterend',quickBtn);
-    voiceStatus=elem('p','Mémoire : rien de nouveau enregistré. Pour enregistrer, une confirmation écrite est obligatoire.','archive-status');
+    voiceStatus=elem('p','Mémoire : rien de nouveau enregistré. Une confirmation explicite par bouton ou par la voix pendant le jeu est obligatoire.','archive-status');
     voiceStatus.id='angel-memory-save-status';
     voiceStatus.setAttribute('role','status');
     voiceStatus.setAttribute('aria-live','polite');
@@ -261,5 +265,5 @@
     if(approval)approval.hidden=true;
     if(voiceStatus)voiceStatus.textContent='Mémoire : aucune sauvegarde en cours.';
   }
-  window.AngelMemoryLearning={init,show,hide,propose,fromVoiceText,confirmPendingByVoice};
+  window.AngelMemoryLearning={init,show,hide,propose,fromVoiceText,confirmPendingByVoice,cancelPendingByVoice};
 })();
