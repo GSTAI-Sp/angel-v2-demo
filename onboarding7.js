@@ -320,9 +320,50 @@ function dispatchLanguage(accepted){
  message(language==='fr-FR'?'Conversation conservée en français.':
   'Langue temporaire confirmée ; retour au français sur simple demande.');
 }
+function wizardVoiceCommand(text){
+ if(!connected||panel.hidden||typeof text!=='string')return false;
+ const t=text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+ if(/^(?:angel[, ]+)?(?:etape suivante|suivant|continue|on continue)[.! ]*$/.test(t)){
+  collect();step=Math.min(step+1,5);render();message('Étape suivante affichée. Rien enregistré.');return true;
+ }
+ if(/^(?:angel[, ]+)?(?:retour|precedent|etape precedente)[.! ]*$/.test(t)){
+  collect();step=Math.max(step-1,0);render();message('Étape précédente affichée.');return true;
+ }
+ if(/^(?:angel[, ]+)?(?:repete|redis)[.! ]*$/.test(t)){
+  speak('Étape '+(step+1)+' : '+['bienvenue','choix de la voix','langues','apprendre mon métier','habitudes','confirmation'][step]+'.');
+  return true;
+ }
+ if(step===1){
+  for(const [name] of VOICES)if(t.includes('voix '+name.toLowerCase())){
+   draft.voice_name=name;render();message('Voix '+name+' sélectionnée pour la prochaine session. Enregistre tes réglages pour la conserver.');
+   return true;
+  }
+ }
+ if(step===4){
+  if(/\b(tutoie moi|tu peux me tutoyer)\b/.test(t)){
+   draft.address_mode='tu';render();message('Tutoiement proposé, non enregistré avant clic.');return true;
+  }
+  if(/\b(vouvoie moi|vous pouvez me vouvoyer)\b/.test(t)){
+   draft.address_mode='vous';render();message('Vouvoiement proposé, non enregistré avant clic.');return true;
+  }
+  for(const [name,label] of TRADES)if(name!=='general'&&
+    t.includes('je suis '+name)){
+    draft.primary_trade=name;render();message('Métier '+label+' sélectionné, à confirmer à la fin.');return true;
+  }
+ }
+ if(/\b(enregistre|termine|sauvegarde)\b/.test(t)){
+  message('Pour protéger tes préférences, clique sur « Enregistrer mes réglages » ou « Enregistrer et terminer plus tard ». Aucune sauvegarde automatique.');
+  return true;
+ }
+ return false;
+}
 function observeUtterance(text){
  if(typeof text!=='string'||!connected)return false;
  const t=text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+ if(/^(?:angel[, ]+)?(?:arrete toi|arrete le micro|coupe le micro|stop angel|stop le micro)[.! ]*$/.test(t)){
+  voiceStop();cfg.stopVoice?.();return true;
+ }
+ if(wizardVoiceCommand(text))return true;
  if(/(?:repasse|revenons|reviens|parle|continue|retourne)(?:-|\s)+(?:en\s+)?francais/.test(t)){
   proposedLanguage='fr-FR';dispatchLanguage(false);return true;
  }
@@ -368,7 +409,7 @@ function init(config){
   void open();
  };
  const voicePanel=$('voicePanel');
- voicePanel.append(openBtn);
+ voicePanel.querySelector('.status')?.insertAdjacentElement('beforebegin',openBtn);
  panel=elt('section');panel.id='onb-panel';panel.className='card onb7';panel.hidden=true;
  const title=elt('h2','Bienvenue — personnalisons Ángel');
  const progress=elt('p');progress.id='onb-progress';progress.className='onb7-progress';
