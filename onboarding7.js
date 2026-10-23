@@ -147,8 +147,12 @@ function buttons(){
  later.onclick=async()=>{voiceStop();collect();if(await saveProfile(false))panel.hidden=true;};
  const skip=elt('button','Passer cette étape');skip.type='button';skip.className='secondary';
  skip.onclick=()=>{voiceStop();step=Math.min(5,step+1);render()};
- const stop=elt('button','■ Couper immédiatement la voix');stop.type='button';stop.className='secondary';
- stop.onclick=()=>{voiceStop();message('Voix coupée. Tu peux continuer avec les boutons. Le bouton Arrêter le micro reste toujours disponible.')};
+ const stop=elt('button','■ Couper immédiatement Ángel');stop.type='button';stop.className='secondary';
+ stop.onclick=()=>{
+  voiceStop();
+  if(cfg.isLive?.())cfg.stopVoice?.();
+  message('Voix coupée. Le micro peut toujours être arrêté à tout moment.');
+ };
  actions.append(back,next,later,stop);
  if(step>0&&step<5)actions.append(skip);
  return actions;
@@ -216,7 +220,9 @@ function render(){
   };
   const count=elt('p','Mots métier déjà confirmés dans ta mémoire : '+wordCount+
    '. Les propositions du jeu doivent être confirmées dans le panneau mémoire existant.');
-  body.append(challenge,field('Ton expression',term),field('Sa définition',definition),submit,count);
+  const reload=elt('button','Actualiser mes mots confirmés');reload.type='button';reload.className='secondary';
+  reload.onclick=()=>void refreshVocabCount();
+  body.append(challenge,field('Ton expression',term),field('Sa définition',definition),submit,count,reload);
   body.append(elt('p','Pas de bonne ou mauvaise réponse. Tu construis ton propre lexique métier ; tu peux corriger ou supprimer les mots dans « Mes mémoires ». Aucun doublon de base.'));
  }
  if(step===4){
@@ -259,8 +265,12 @@ async function show(){
   }else panel.hidden=true;
  }catch(e){message('Profil TEST indisponible : '+String(e.message),true);}
 }
+function resetConversationLanguage(){
+ sessionLanguage='fr-FR';proposedLanguage=null;
+ if($('onb-language-ask'))$('onb-language-ask').hidden=true;
+}
 function hide(){
- connected=false;voiceStop();sessionLanguage='fr-FR';proposedLanguage=null;
+ connected=false;voiceStop();resetConversationLanguage();
  panel.hidden=true;initiated=false;draft={...BASIC};profile={...BASIC};
 }
 function getVoice(){return VOICES.some(v=>v[0]===draft.voice_name)?draft.voice_name:'Aoede';}
@@ -357,10 +367,12 @@ function init(config){
  const no=elt('button','Non, rester en français');no.id='onb-language-no';no.type='button';
  no.className='secondary';no.onclick=()=>dispatchLanguage(false);
  langAsk.append(yes,no);
- panel.append(title,progress,body,alert,langAsk);
+ panel.append(title,progress,body,alert);
  voicePanel.insertAdjacentElement('afterend',panel);
+ // La demande de langue reste visible MÊME quand le guide a été terminé et fermé.
+ voicePanel.insertAdjacentElement('afterend',langAsk);
  window.addEventListener('pagehide',voiceStop);
 }
 window.AngelOnboarding7={init,show,hide,open,getVoice,languageInstruction,observeUtterance,
- voiceStop,refreshVocabCount,detectedCandidate,dispatchLanguage};
+ voiceStop,resetConversationLanguage,refreshVocabCount,detectedCandidate,dispatchLanguage};
 })();
