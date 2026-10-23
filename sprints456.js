@@ -4,6 +4,20 @@ const REF='dchunxngtdbtgxbccmlb';
 let cfg=null,box=null,rec=null,active=false,files=[],pending=null,busy=false;
 const $=x=>document.getElementById(x);
 const token=()=>cfg?.getToken?.();
+function normalizeSpeech(text){
+ return String(text||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+}
+// « Angèle », « Angel » et « Ángel » doivent correspondre sans accepter « Angélique ».
+function isWakeName(text){
+ return /\bangel(?:e)?\b/.test(normalizeSpeech(text));
+}
+function isIncidentSpeech(text){
+ const t=normalizeSpeech(text);
+ const action=/\b(?:signal(?:e|er|ement)?|declare|declarer|constat(?:e|er)?|probleme|incident)\b/.test(t);
+ const location=/\b(?:chantier|toiture|terrasse|mur|plomberie|electricite|fuite|infiltration|degat)\b/.test(t);
+ const negated=/\b(?:ne|pas|jamais)\s+(?:le\s+)?signal(?:e|er)\b/.test(t);
+ return action&&location&&!negated;
+}
 function note(message){$('s456-note').textContent=message;}
 function stopWake(){
  active=false;
@@ -19,16 +33,19 @@ function wake(){
  const r=new Speech();rec=r;active=true;r.lang='fr-FR';r.continuous=true;r.interimResults=false;
  r.onresult=e=>{
    for(let i=e.resultIndex;i<e.results.length;i++){
-     const spoken=String(e.results[i][0]?.transcript||'')
-       .normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-     if(/\bangel\b/.test(spoken)){
+     const spoken=String(e.results[i][0]?.transcript||'');
+     if(isWakeName(spoken)){
        stopWake();note('Prénom reconnu. Activation du micro en cours, démarrage manuel si bloqué par le navigateur.');
        cfg.startVoice();break;
      }
    }
  };
- r.onerror=()=>{stopWake();note('Veille indisponible. Utilise Démarrer.')};
- r.onend=()=>{if(active){stopWake();note('Veille arrêtée par le navigateur.')}}; 
+ r.onerror=e=>{
+  const code=String(e?.error||'erreur').slice(0,35);
+  stopWake();
+  note('Reconnaissance du prénom interrompue ('+code+'). Clique sur Démarrer pour utiliser Ángel.');
+ };
+ r.onend=()=>{if(active){stopWake();note('Écoute du prénom arrêtée par le navigateur. Réactive-la ou utilise Démarrer.')}}; 
  try{r.start();$('s456-wake').textContent='Arrêter la veille';
   note('Veille activée volontairement : dis « Ángel ». Le navigateur peut utiliser un service de reconnaissance distant.');}
  catch(_){stopWake();note('Veille non disponible : utilise le bouton Démarrer.')}
@@ -143,15 +160,24 @@ function photoChange(){
  note('Photos locales : aucun transfert vers Supabase.');
 }
 function voiceDraft(t){
- if(!token()||typeof t!=='string'||!/(signale|signaler|probleme|problème|constat)/i.test(t)||
-    !/(chantier|toiture|terrasse|mur|plomberie|électricité)/i.test(t))return false;
- $('s456-title').value='Constat vocal chantier — SPÉCIMEN';
- $('s456-zone').value='Chantier fictif';
+ if(!token()||!box||typeof t!=='string'||!isIncidentSpeech(t))return false;
+ const tnorm=normalizeSpeech(t);
+ const location=/\btoiture\b/.test(tnorm)?'Toiture du chantier fictif':
+  /\bterrasse\b/.test(tnorm)?'Terrasse du chantier fictif':'Chantier fictif';
+ const title=/\b(?:fuite|infiltration)\b/.test(tnorm)?
+  'Fuite à signaler — SPÉCIMEN':'Problème de chantier — SPÉCIMEN';
+ // Une dictée crée seulement un formulaire local; ni recherche client/chantier
+ // ni écriture sur Supabase. Aucun nom de client fictif ne doit être exigé.
+ $('s456-title').value=title;
+ $('s456-zone').value=location;
  $('s456-description').value=t.trim().slice(0,1500);
  pending=null;$('s456-confirm').disabled=true;
  box.hidden=false;
- $('s456-preview').textContent='Constat dicté ajouté au BROUILLON, non enregistré. Complète les champs, joins tes photos locales, prépare puis confirme.';
- note('Constat oral reçu. Rien envoyé.');return true;
+ $('s456-preview').textContent='Signalement SPÉCIMEN prérempli depuis la voix : '+title+
+  '\nZone : '+location+'\nVérifie le constat, ajoute les photos locales souhaitées, '+
+  'puis clique Préparer et Confirmer.\nAucune alerte envoyée, aucun devis créé.';
+ note('Constat dicté : formulaire TEST prérempli, aucun client ni chantier à retrouver. Aucune donnée enregistrée.');
+ return true;
 }
 function init(c){
  if(!c?.baseUrl?.startsWith('https://'+REF+'.supabase.co'))throw Error('TEST obligatoire.');
@@ -198,5 +224,5 @@ function init(c){
 }
 function show(){if(box&&token()){box.hidden=false;note('TEST actif. Sélectionne une fonctionnalité à essayer.')}}
 function hide(){stopWake();revoke();pending=null;busy=false;if(box){box.hidden=true;$('s456-confirm').disabled=true;$('s456-preview').textContent='Aucun signalement préparé.'}}
-window.AngelSprints456={init,show,hide,stopWake,voiceDraft};
+window.AngelSprints456={init,show,hide,stopWake,voiceDraft,isWakeName,isIncidentSpeech};
 })();
