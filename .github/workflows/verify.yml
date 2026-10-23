@@ -96,6 +96,11 @@ jobs:
           assert "options.incidentMode" in metier
           assert "confirmation:true" in s456
           assert "Dernier outil vocal" in metier
+          assert "prepareLiveConnection" in html
+          assert "Promise.all([micPromise,memoryPromise,tokenPromise])" in html
+          assert "signal:controller.signal" in html
+          assert "startupAbort.abort()" in html
+          assert "preconnect" in html
           assert "Lister tous mes devis TEST" in metier
           assert len(js) > 2500
           Path("/tmp/angel-v2-client.js").write_text(js, encoding="utf8")
@@ -120,4 +125,5 @@ jobs:
           node metier-voice-sprints-567.test.cjs
           node sprints456.test.cjs
           node incident-wake-routing.test.cjs
+          node live-startup-performance.test.cjs
           node scripts/quality-gate.cjs
