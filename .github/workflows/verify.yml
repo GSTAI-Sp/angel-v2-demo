@@ -84,6 +84,13 @@ jobs:
           assert "preparer_deplacement_rendez_vous" in metier
           assert "Confirmer le déplacement fictif" in metier
           assert "Aucune facture créée" in metier
+          s456 = Path("sprints456.js").read_text(encoding="utf8")
+          assert '<script src="./sprints456.js"></script>' in html
+          assert "extras.init(" in html
+          assert "enregistrer_signalement_test" in s456
+          assert "consulter_modules_test" in s456
+          assert "URL.createObjectURL" in s456
+          assert "confirmation:true" in s456
           assert "Dernier outil vocal" in metier
           assert "Lister tous mes devis TEST" in metier
           assert len(js) > 2500
@@ -93,6 +100,7 @@ jobs:
         run: |
           node --check /tmp/angel-v2-client.js
           node --check metier.js
+          node --check sprints456.js
           node --check transcript-preview.js
           node --check archive.js
           node --check memory.js
@@ -106,4 +114,5 @@ jobs:
           node memory-manager.test.cjs
           node devis-voice-guard.test.cjs
           node metier-voice-sprints-567.test.cjs
+          node sprints456.test.cjs
           node scripts/quality-gate.cjs
