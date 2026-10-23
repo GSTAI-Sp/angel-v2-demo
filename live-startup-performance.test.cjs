@@ -13,7 +13,7 @@ assert.ok(source.includes('controller.signal.aborted'));
 assert.ok(source.includes('captured.getTracks().forEach(t=>t.stop())'));
 assert.ok(source.includes('jwt!==currentJwt'));
 assert.ok(html.includes('if(startupAbort){startupAbort.abort();startupAbort=null;}'));
-assert.ok(html.includes('if(stopped)return;\n    await initCapture();'));
+assert.ok(source.includes('await initCapture();'),'La capture doit démarrer dès que le micro est autorisé');
 assert.ok(html.includes('memoires')||html.includes('mémoires'));
 assert.ok(html.includes('Connexion en '));
 assert.doesNotMatch(source,/localStorage|sessionStorage|persistSession|setItem\(/);
