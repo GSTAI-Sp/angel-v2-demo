@@ -165,4 +165,5 @@ jobs:
           node instant-micro-buffer.test.cjs
           node onboarding7.test.cjs
           node demo-business-parity.test.cjs
+          node sprint16-demo-audit.test.cjs
           node scripts/quality-gate.cjs
