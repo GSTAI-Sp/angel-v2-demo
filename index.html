@@ -74,6 +74,8 @@ footer{border-top:1px solid #e2e9f0;padding:21px 0;color:#7b8999;font-size:12px}
 <button id="startBtn" class="primary" type="button">🎙 Démarrer la conversation</button>
 <button id="stopBtn" class="secondary" type="button" disabled>■ Arrêter le micro</button>
 </div>
+<div id="connectionDiagnostic" class="muted" role="status" aria-live="polite" hidden></div>
+<div class="actions"><button id="copyConnectionDiagnostic" class="secondary" type="button" hidden>Copier le diagnostic de connexion</button></div>
 <div class="log"><div class="transcript"><strong>Toi :</strong> <span id="heard">—</span></div><div class="transcript"><strong>Ángel :</strong> <span id="said">—</span></div></div>
 </section>
 <p class="note">Essais administrateurs uniquement sur TEST. Consultations multiples, briefing et aperçus : les factures ne sont jamais émises ou envoyées. La création d'un rendez-vous fictif exige ton clic de confirmation. L’audio fonctionne seulement pendant la session ouverte, selon le navigateur et la connexion.</p>
@@ -138,6 +140,36 @@ function flushPendingAudio(){
 }
 let playback=[], nextPlayTime=0, starting=false, stopped=true, setupDone=false, sessionTimer=null, setupTimer=null;
 let spokenUserTurn='', calledDevisTool=false, devisRecoveryRunning=false;
+// Diagnostic strictement local, sans contenu vocal, identifiant, JWT ni secret.
+// Le 1011 est émis par le serveur Gemini : ne pas inventer une cause précise.
+let openedAt=0,sessionTurns=0,lastConnectionDiagnostic='',lastSessionPhase='non_connecte';
+function recordConnectionFailure(code,phase){
+  const elapsed=openedAt?Math.max(0,Math.round((performance.now()-openedAt)/1000)):0;
+  const safeCode=String(code??'inconnu').replace(/[^A-Za-z0-9_-]/g,'').slice(0,25);
+  const safePhase=['initialisation','conversation','protocole'].includes(phase)?phase:'protocole';
+  lastConnectionDiagnostic='Ángel V2 TEST | '+MODEL+' | WebSocket '+safeCode+
+    ' | phase '+safePhase+' | durée '+elapsed+' s | tours '+sessionTurns+
+    ' | date '+new Date().toISOString();
+  $('connectionDiagnostic').textContent='Diagnostic local disponible : '+safeCode+
+    ' pendant '+safePhase+'. Aucun identifiant ni conversation copiés.';
+  $('connectionDiagnostic').hidden=false;
+  $('copyConnectionDiagnostic').hidden=false;
+}
+function clearConnectionFailure(){
+  lastConnectionDiagnostic='';
+  $('connectionDiagnostic').hidden=true;
+  $('copyConnectionDiagnostic').hidden=true;
+}
+$('copyConnectionDiagnostic').addEventListener('click',async()=>{
+  if(!lastConnectionDiagnostic)return;
+  try{
+    await navigator.clipboard.writeText(lastConnectionDiagnostic);
+    setState('Diagnostic copié','Tu peux transmettre ce diagnostic technique, sans paroles ni jeton.','active');
+  }catch{
+    // Pas de téléchargement ni d'envoi automatique. Afficher une valeur sûre.
+    $('connectionDiagnostic').textContent=lastConnectionDiagnostic;
+  }
+});
 let calledBusinessTools=new Set(),businessRecoveryRunning=false;
 function normalizedFrench(value){
   return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
@@ -370,6 +402,7 @@ async function openLive(){
     await outputCtx.resume();
     if(stopped)return;
     // Le micro est déjà ouvert et capture les paroles pendant les requêtes réseau.
+    openedAt=performance.now();sessionTurns=0;lastSessionPhase='initialisation';
     const ws=new WebSocket(WS_URL+'?access_token='+encodeURIComponent(ready.token));
     // Google peut renvoyer les messages JSON sous forme de trames WebSocket binaires.
     ws.binaryType='arraybuffer';
@@ -412,13 +445,18 @@ async function openLive(){
         return;
       }
       if(data.error){
-        const code=String(data.error.code??data.error.status??'').slice(0,60);
-        setState('Erreur Gemini','La session Live a signalé une erreur'+(code?' ('+code+')':'')+'.','error');
+        const code=String(data.error.code??data.error.status??'ERREUR');
+        recordConnectionFailure(code,lastSessionPhase);
+        stop();
+        $('startBtn').textContent='↻ Réessayer Gemini avec un nouveau jeton';
+        setState('Erreur du service Gemini','La session a retourné une erreur. Micro coupé. Tu peux relancer une session neuve ou copier le diagnostic.','error');
         return;
       }
       if(data.setupComplete){
         if(stopped)return;
-        setupDone=true;
+        setupDone=true;lastSessionPhase='conversation';
+        clearConnectionFailure();
+        $('startBtn').textContent='🎙 Démarrer la conversation';
         if(setupTimer){clearTimeout(setupTimer);setupTimer=null}
         const hadClippedAudio=pendingAudioClipped;
         if(pendingAudio.length&&audioFlushTimer===null)
@@ -465,6 +503,7 @@ async function openLive(){
         if(c.outputTranscription?.text)transcripts.output(c.outputTranscription.text);
         if(c.modelTurn?.parts){for(const part of c.modelTurn.parts)if(part.inlineData?.data)playAudio(part.inlineData.data)}
         if(c.turnComplete){
+          sessionTurns++;
           const thisRequest=spokenUserTurn;
           const assistantReply=$('said').textContent;
           const alreadyCalled=calledDevisTool;
@@ -490,9 +529,16 @@ async function openLive(){
     ws.onerror=()=>{if(!stopped)setState('Erreur WebSocket','La connexion vocale Gemini rencontre une erreur réseau.','error')};
     ws.onclose=e=>{
       if(stopped)return;
+      const phase=lastSessionPhase;
+      recordConnectionFailure(e.code,phase);
       stop();
-      // Ne jamais afficher une raison de fermeture brute potentiellement sensible.
-      setState('Session fermée','Gemini a fermé le WebSocket (code '+e.code+'). Tu peux relancer un essai.','error');
+      // 1011: erreur INTERNE côté fournisseur, sans attribution aveugle au micro.
+      // Ne pas auto-relancer : chaque nouveau jeton consomme le quota TEST.
+      $('startBtn').textContent='↻ Réessayer Gemini avec un nouveau jeton';
+      setState(e.code===1011?'Erreur interne Gemini (1011)':'Session Gemini interrompue',
+        (e.code===1011?'Google a interrompu la session (1011).':'La session Gemini a été interrompue (code '+e.code+').')+
+        ' Le micro est arrêté. Clique sur Réessayer pour obtenir une session neuve.'+
+        ' Si cela se reproduit, utilise Copier le diagnostic.','error');
     };
     // Limite locale : pas de session de test ouverte indéfiniment.
     sessionTimer=setTimeout(()=>{stop();setState('Limite atteinte','Session de test de 10 minutes terminée. Tu peux en démarrer une nouvelle.')},10*60*1000);
