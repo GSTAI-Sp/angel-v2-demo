@@ -8,11 +8,11 @@
   "production_approval": false,
   "completion_status": "EN_ATTENTE_TESTS_HUMAINS",
   "last_review": "2026-10-29",
-  "review_reason": "Correctif de pré-recette sur signalement utilisateur: Gemini Live ferme parfois le WebSocket code 1011 (erreur interne côté Google). Le client démo distingue phase initialisation et conversation, mesure durée et nombre de tours, arrête systématiquement le microphone si la session échoue, propose un redémarrage MANUEL avec un nouveau jeton éphémère, et permet de copier un diagnostic strictement local sans transcription ni jeton. Nouveau test VM websocket-1011-recovery.test.cjs ajouté à CI; origine serveur exacte d'un incident particulier non établie.",
+  "review_reason": "Correctif WebSocket 1011: micro arrêté sur erreur interne Google Gemini, diagnostic local non sensible et redémarrage manuel avec nouveau jeton. Régression détectée par le test VM devis-voice-guard: listener Copier diagnostic exécuté hors DOM; déplacé dans la section de montage DOM. Les tests VM dédiés 1011 et historiques du moteur sont à confirmer par la CI sur dernier SHA et recette humaine.",
   "test_limitations": "Les tests automatisés Node VM ne simulent pas un vrai serveur Gemini, et une erreur Google 1011 peut encore se produire selon disponibilité/provider ou configuration. À confirmer avec l'artisan sur démo GitHub Pages (PC et Safari) après publication du dernier commit. La démo reste isolée Supabase TEST; le sous-domaine n'est pas encore publié. Le diagnostic navigateur n'enregistre ni token, email ni paroles; aucune reconnexion automatique.",
   "changes_log": "docs/angel-v2/CHANGELOG_BROUILLON.md",
   "tracked_sources": {
-    "index.html": "8594b55b76134f9a16ba570b968a21c90f86c0af",
+    "index.html": "2ef4c8dd449d4f120eb4686ec9f0d975036ddf99",
     "metier.js": "2fa0766739672a7f7deb21d4c2f838589fac1a74",
     "transcript-preview.js": "aa7af9f52a79ffed70cbfbc684c6ef3ca7b22a04",
     "archive.js": "4a06fd1b297873cda254e02e48733336cccbe149",
