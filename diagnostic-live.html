@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Ángel V2 — Diagnostic Gemini Live minimal</title>
+<style>body{font:16px system-ui;background:#f3f8ff;color:#173557;margin:0}main{max-width:620px;margin:40px auto;padding:25px;background:white;border-radius:16px;box-shadow:0 8px 30px #1b4c8515}h1{color:#0666c5}label{display:block;margin:15px 0 5px}input{width:100%;box-sizing:border-box;padding:12px;border:1px solid #aebfd4;border-radius:7px;font:inherit}button{margin:18px 8px 0 0;padding:12px 17px;border:0;background:#0769d3;color:white;border-radius:8px;font:inherit;cursor:pointer}button:disabled{opacity:.5}pre{white-space:pre-wrap;background:#edf5ff;padding:15px;border-radius:8px;overflow-wrap:anywhere}small{color:#4b6381}</style>
+</head><body><main><h1>Diagnostic Gemini Live minimal</h1><p>Test isolé sur Supabase Ángel V2 uniquement. Aucune modification de donnée métier, aucun microphone, aucune sauvegarde de mot de passe et aucun outil appelé. Une tentative utilise un jeton de test.</p>
+<form id="login"><label for="email">Compte administrateur TEST</label><input id="email" type="email" autocomplete="username" required><label for="password">Mot de passe TEST</label><input id="password" type="password" autocomplete="current-password" required><button id="run">Tester la connexion minimale</button></form>
+<pre id="status" role="status">Prêt pour le diagnostic.</pre><button id="copy" type="button">Copier le résultat</button>
+<p><small>Ce test n'établit PAS que l'ensemble des outils métier fonctionne. Il vérifie seulement le jeton et la configuration minimale Gemini Live. Aucun jeton, mot de passe ou contenu de conversation n'est affiché dans le diagnostic.</small></p>
+<p><a href="./">Retour à la démo Ángel</a></p></main>
+<script>
+(()=>{'use strict';
+const ref='dchunxngtdbtgxbccmlb';
+const base='https://'+ref+'.supabase.co';
+const key='sb_publishable_0Y7z5OGhZOkRyK5sattmyA_ul2BNv7v';
+const url='wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained';
+const model='models/gemini-3.8-live';
+const status=document.getElementById('status'),button=document.getElementById('run');
+const log=[];
+function report(s){log.push(s);status.textContent=log.join('\n');}
+function safeError(body){return String(body?.error?.message||body?.error||body?.message||'Erreur').replace(/[A-Za-z0-9_-]{60,}/g,'[masqué]').slice(0,240);}
+document.getElementById('copy').addEventListener('click',()=>navigator.clipboard?.writeText(log.join('\n')));
+document.getElementById('login').addEventListener('submit',async e=>{
+e.preventDefault();button.disabled=true;log.length=0;report('Ángel V2 TEST — '+new Date().toISOString());report('Modèle : '+model);report('Test : AUDIO minimal / aucun outil / aucun micro');
+let ws=null,timer=null;
+try{
+ report('1. Authentification TEST…');
+ const authRes=await fetch(base+'/auth/v1/token?grant_type=password',{method:'POST',headers:{'apikey':key,'Content-Type':'application/json'},body:JSON.stringify({email:document.getElementById('email').value,password:document.getElementById('password').value})});
+ const auth=await authRes.json();document.getElementById('password').value='';
+ if(!authRes.ok||!auth.access_token)throw Error('Authentification TEST : HTTP '+authRes.status);
+ report('1. Authentification TEST OK');
+ report('2. Jeton éphémère…');
+ const tRes=await fetch(base+'/functions/v1/angel-live-token',{method:'POST',headers:{'Authorization':'Bearer '+auth.access_token,'apikey':key,'Content-Type':'application/json'},body:'{}'});
+ const t=await tRes.json().catch(()=>({}));
+ if(!tRes.ok||!t.token){report('2. Échec jeton HTTP '+tRes.status+' '+safeError(t));return;}
+ report('2. Jeton éphémère reçu (contenu masqué)');
+ report('3. Ouverture WebSocket…');
+ await new Promise((resolve)=>{
+  let ended=false;function finish(){if(ended)return;ended=true;clearTimeout(timer);try{ws?.close(1000,'diagnostic terminé')}catch{}resolve();}
+  timer=setTimeout(()=>{report('3. ÉCHEC : aucun setupComplete après 12 s');finish()},12000);
+  ws=new WebSocket(url+'?access_token='+encodeURIComponent(t.token));ws.binaryType='arraybuffer';
+  ws.onopen=()=>{report('3. WebSocket ouvert');ws.send(JSON.stringify({setup:{model,generationConfig:{responseModalities:['AUDIO']}}}));report('4. Configuration AUDIO minimale envoyée');};
+  ws.onmessage=async ev=>{try{const raw=typeof ev.data==='string'?ev.data:ev.data instanceof ArrayBuffer?new TextDecoder().decode(ev.data):await ev.data.text();const d=JSON.parse(raw);if(d.setupComplete){report('4. SUCCÈS : setupComplete reçu');finish()}else if(d.error){report('4. ERREUR GOOGLE : code '+String(d.error.code||d.error.status||'?').slice(0,50)+' / '+safeError(d));finish()}else{report('4. Trame reçue sans setupComplete');}}catch{report('4. Trame illisible');finish()}};
+  ws.onerror=()=>report('3. Événement erreur réseau WebSocket');
+  ws.onclose=ev=>{if(!ended){report('4. FERMETURE WebSocket : '+ev.code+' / '+String(ev.reason||'(raison absente)').replace(/[A-Za-z0-9_-]{60,}/g,'[masqué]').slice(0,180));finish()}};
+ });
+}catch(err){report('ÉCHEC : '+String(err?.message||err).slice(0,180))}finally{if(timer)clearTimeout(timer);if(ws&&ws.readyState===WebSocket.OPEN)ws.close(1000,'diagnostic terminé');button.disabled=false;}
+});
+})();
+</script></body></html>
