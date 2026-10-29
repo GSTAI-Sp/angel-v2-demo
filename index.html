@@ -160,16 +160,7 @@ function clearConnectionFailure(){
   $('connectionDiagnostic').hidden=true;
   $('copyConnectionDiagnostic').hidden=true;
 }
-$('copyConnectionDiagnostic').addEventListener('click',async()=>{
-  if(!lastConnectionDiagnostic)return;
-  try{
-    await navigator.clipboard.writeText(lastConnectionDiagnostic);
-    setState('Diagnostic copié','Tu peux transmettre ce diagnostic technique, sans paroles ni jeton.','active');
-  }catch{
-    // Pas de téléchargement ni d'envoi automatique. Afficher une valeur sûre.
-    $('connectionDiagnostic').textContent=lastConnectionDiagnostic;
-  }
-});
+
 let calledBusinessTools=new Set(),businessRecoveryRunning=false;
 function normalizedFrench(value){
   return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
@@ -571,6 +562,16 @@ $('loginForm').addEventListener('submit',async event=>{
     if(!archiveReady)setState('Archives indisponibles','Sécurisation des conversations non disponible. Le micro reste coupé pour éviter toute perte.', 'error');
   }catch(err){$('loginError').textContent=err.message||'Erreur de connexion.'}
   finally{btn.disabled=false;btn.textContent='Se connecter'}
+});
+$('copyConnectionDiagnostic').addEventListener('click',async()=>{
+  if(!lastConnectionDiagnostic)return;
+  try{
+    await navigator.clipboard.writeText(lastConnectionDiagnostic);
+    setState('Diagnostic copié','Tu peux transmettre ce diagnostic technique, sans paroles ni jeton.','active');
+  }catch{
+    // Pas de téléchargement ni d'envoi automatique. Afficher une valeur sûre.
+    $('connectionDiagnostic').textContent=lastConnectionDiagnostic;
+  }
 });
 $('startBtn').addEventListener('click',()=>{void openLive()});
 $('stopBtn').addEventListener('click',()=>{stop();setState('Micro coupé','La conversation est arrêtée.')});
