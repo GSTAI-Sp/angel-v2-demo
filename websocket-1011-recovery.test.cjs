@@ -37,7 +37,7 @@ assert.match(content,/phase conversation/);
 assert.match(content,/tours 3/);
 assert.doesNotMatch(content,/Bearer|access_token|Authorization|email|@|GEMINI_API_KEY|secret/i);
 assert.match(html,/if\(stopped\)return;\s*const phase=lastSessionPhase;/);
-assert.match(html,/if\(data\.error\)\{\s*const code=.*recordConnectionFailure\(code,lastSessionPhase\);\s*stop\(\);/);
+assert.match(html,/if\(data\.error\)\{\s*const code=[^;]+;\s*recordConnectionFailure\(code,lastSessionPhase\);\s*stop\(\);/);
 assert.match(html,/if\(data\.setupComplete\)\{[\s\S]{0,150}lastSessionPhase='conversation';\s*clearConnectionFailure\(\)/);
 assert.match(html,/method:'POST',signal:controller.signal/);
 assert.match(html,/const ws=new WebSocket\(WS_URL\+'\?access_token='\+encodeURIComponent\(ready.token\)\)/);
