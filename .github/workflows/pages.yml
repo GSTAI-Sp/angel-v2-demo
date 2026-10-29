@@ -54,8 +54,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir public-site
-          cp index.html archive.js auto-memory.js memory-intent.js memory-learn.js memory-manager.js memory.js metier.js sprints456.js onboarding7.js transcript-preview.js public-site/
+          cp index.html archive.js auto-memory.js memory-intent.js memory-learn.js memory-manager.js memory.js metier.js sprints456.js onboarding7.js transcript-preview.js diagnostic-live.html public-site/
           test -f public-site/index.html
+          test -f public-site/diagnostic-live.html
           test ! -d public-site/.github
           test ! -f public-site/README.md
 
