@@ -166,4 +166,5 @@ jobs:
           node onboarding7.test.cjs
           node demo-business-parity.test.cjs
           node sprint16-demo-audit.test.cjs
+          node websocket-1011-recovery.test.cjs
           node scripts/quality-gate.cjs
