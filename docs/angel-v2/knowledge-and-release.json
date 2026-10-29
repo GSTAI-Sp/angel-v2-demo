@@ -7,12 +7,12 @@
   "manual_acceptance": "EN_ATTENTE",
   "production_approval": false,
   "completion_status": "EN_ATTENTE_TESTS_HUMAINS",
-  "last_review": "2026-10-23",
-  "review_reason": "Parité test demo/sous-domaine : les deux interfaces utilisent les mêmes tables et endpoints du projet Supabase Ángel V2 TEST. En plus des formulaires devis/RDV et des nouveaux rapports chantier et factures, la démo rend les sprints 12–15 immédiatement visibles via un bouton; confirmation devis/RDV par clic suivie de relecture exacte UUID, date et heure, suppression immédiate du contexte après réponse serveur pour éviter double confirmation. Suite VM de parité et CI Pages obligatoires. Base de connaissances EXISTANTE mise à jour par migration privée 20261023_angel_v2_demo_preview_parity_knowledge_test.sql appliquée sur TEST.",
-  "test_limitations": "La démo et le sous-domaine partagent les mêmes données et endpoints TEST, mais les interfaces sont différentes (la démo n'est pas la coque React de SpeedArti). Les anciens constats sans chantier de la démo sont conservés pour compatibilité ; le nouveau parcours exige un chantier TEST. Sur les deux, factures non émises, devis brouillons SPECIMENS, rendez-vous TEST confirmés par clic, photos non transférées, aucune émission ni notification. CI sur dernière révision et tests humains encore à valider.",
+  "last_review": "2026-10-29",
+  "review_reason": "Correctif de pré-recette sur signalement utilisateur: Gemini Live ferme parfois le WebSocket code 1011 (erreur interne côté Google). Le client démo distingue phase initialisation et conversation, mesure durée et nombre de tours, arrête systématiquement le microphone si la session échoue, propose un redémarrage MANUEL avec un nouveau jeton éphémère, et permet de copier un diagnostic strictement local sans transcription ni jeton. Nouveau test VM websocket-1011-recovery.test.cjs ajouté à CI; origine serveur exacte d'un incident particulier non établie.",
+  "test_limitations": "Les tests automatisés Node VM ne simulent pas un vrai serveur Gemini, et une erreur Google 1011 peut encore se produire selon disponibilité/provider ou configuration. À confirmer avec l'artisan sur démo GitHub Pages (PC et Safari) après publication du dernier commit. La démo reste isolée Supabase TEST; le sous-domaine n'est pas encore publié. Le diagnostic navigateur n'enregistre ni token, email ni paroles; aucune reconnexion automatique.",
   "changes_log": "docs/angel-v2/CHANGELOG_BROUILLON.md",
   "tracked_sources": {
-    "index.html": "18d54a949dd4d0ddc550692cf77a7ab237f8aa2b",
+    "index.html": "8594b55b76134f9a16ba570b968a21c90f86c0af",
     "metier.js": "2fa0766739672a7f7deb21d4c2f838589fac1a74",
     "transcript-preview.js": "aa7af9f52a79ffed70cbfbc684c6ef3ca7b22a04",
     "archive.js": "4a06fd1b297873cda254e02e48733336cccbe149",
@@ -268,5 +268,20 @@
     "knowledge_migration": "GSTAI-Sp/speedarti-thibault@angel-v2/supabase/migrations/20261023_angel_v2_demo_preview_parity_knowledge_test.sql : appliquée à Supabase TEST",
     "ci_gate": "En attente du workflow sur le dernier commit",
     "human_validation": "EN_ATTENTE"
+  },
+  "websocket_1011_20261029": {
+    "issue": "User reports Gemini WebSocket close code 1011 during tests",
+    "classification": "Gemini Live upstream/internal error possible; root cause not proven",
+    "controls": [
+      "stop microphone on close code 1011",
+      "manual restart uses new ephemeral token",
+      "no hidden retry",
+      "safe diagnostic with model, phase, duration, turns, timestamp only",
+      "no raw reasons, no user transcripts/tokens"
+    ],
+    "test": "websocket-1011-recovery.test.cjs",
+    "human_validation": "A_FAIRE_SUR_DEMO",
+    "subdomain": "EN_ATTENTE_ANNE_SOPHIE",
+    "status": "CORRECTIF_CLIENT_A_VALIDER_PAR_ESSAI"
   }
 }
